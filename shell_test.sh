@@ -1305,15 +1305,19 @@ num2=0
 	fi
 	;;
 76) echo "let"
-	echo 1+2
-	echo `expr 1 + 2 `
+	echo '1+2='1+2
+	echo 'expr 1 + 2 = '`expr 1 + 2 `
 	let a=1+2
-	echo $[1+2]
-	echo $a
+	echo '$$[1+2]='$[1+2]
+	echo '$a=1+2 = '$a
 	a=2
 	b=3
 #	echo `expr $a**$b`
-	echo $[a+b]
+	echo '$[a+b]='$[a+b]
+    c=$a+$b
+    echo 'c=$a+$b='$c
+    let c=$a+$b
+    echo 'let c=$a+$b='$c
 	;;
 77) echo "expression"
 	x=1 
@@ -1997,7 +2001,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
    echo "run on the sectools/"
 force_args_2 "$@"
 #keypath="/mnt/keys/"
-keypath=$2
+keypath=$2  
 if [ ! -d $keypath ] ; then
     mkdir -p $keypath
 fi
@@ -2012,6 +2016,99 @@ openssl x509 -in ${keypath}/attestca.crt -inform PEM -out ${keypath}/attestca.ce
 
 openssl genrsa -out ${keypath}/attest.key -3 2048
 	;;
+123) echo "mv signed mbn from signed/<platform>/<sign_id>/ to signed/"
+    in_dir=$2
+    out_dir=$3
+    for dir in `dir $in_dir`
+    do
+        mbn="$in_dir""/""$dir""/*.mbn"
+        ls -l $mbn
+        cp $mbn $out_dir
+    done
+    ;;
+124) echo "sign mbn on $2, strored in $2/signed"
+    in_dir=$2
+    out_dir="$2""/signed/"
+    count=0
+    count_ok=0
+    count_fail=0
+    count_missing=0
+    msg_missing=""
+    msg_fail=""
+    for file in `dir $in_dir`
+    do
+        missing="f"
+        mbn="$in_dir""/""$file"
+        echo "mbn:$mbn"
+        if [ $file == "prog_emmc_firehose_8917.mbn" ]; then
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g prog_emmc_firehose_ddr -s
+        elif [ $file == "validated_emmc_firehose_8917.mbn" ]; then
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g validated_emmc_firehose_ddr -s
+        elif [ $file == "cmnlib.mbn" ]; then
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g cmnlib -s
+        elif [ $file == "cmnlib64.mbn" ]; then
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g cmnlib64 -s
+        elif [ $file == "devcfg.mbn" ]; then
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g devcfg -s
+        elif [ $file == "emmc_appsboot.mbn" ]; then
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g appsbl -s
+        elif [ $file == "keymaster.mbn" ]; then
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g keymaster -s
+        elif [ $file == "rpm.mbn" ]; then
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g rpm -s
+        elif [ $file == "sbl1.mbn" ]; then
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g sbl1 -s
+        elif [ $file == "tz.mbn" ]; then
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g qsee -s
+        elif [ $file == "wcnss.mbn" ]; then
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g wcnss -s
+        else 
+            echo "ERROR: We dont know how to sign it?""$mbn"
+            let count_missing=$count_missing+1
+            msg_missing="$msg_missing""\n""    $file"
+            missing="t"
+        fi
+        if [ $? -eq 0 ] ; then
+            if [ $missing == "f" ] ; then
+                let count_ok=$count_ok+1
+            fi
+        else 
+            if [ $missing == "f" ] ; then
+                let count_fail=$count_fail+1
+                msg_fail="$msg_fail""\n""    $file"
+            fi    
+        fi
+        let count=$count+1
+    done
+    echo "$count"" : Total"
+    echo "$count_ok"" : Sign OK"
+    echo "$count_fail"" : Sign Fail"
+    echo -e "$msg_fail"
+    echo "$count_missing"" : Miss Cmds"
+    echo -e "$msg_missing"
+    ;;
+125) echo "ant-split *.n** & *.mdt"
+    echo 'script $1 <....wcnss>'
+    # cd /mnt/scripts
+    # 
+    in_file_without=$2
+    in_file_mdt="$2"".mdt"
+    out_file_mbn="$2"".mbn"
+    out_file_mbn_bak="$2"".mbn.bak"
+    out_file_join_mbn="$2""_join.mbn"
+    if [ ! -f $out_file_mbn_bak ] ; then
+    if [ -f $out_file_mbn ] ; then
+        cp $out_file_mbn $out_file_mbn_bak
+    fi
+    fi
+    file $in_file_mdt |awk -F ' ' '{print $3}'
+    type=`file $in_file_mdt |awk -F ' ' '{print $3}'`
+    if [ $type == "32-bit" ] ; then
+        type="32"
+    fi
+    python ./pil-splitter.py $type $in_file_without
+    cp $out_file_join_mbn $out_file_mbn
+    ;;
 *) echo "others"
 	;;
 esac
