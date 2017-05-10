@@ -2088,7 +2088,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     echo -e "$msg_missing"
     ;;
 125) echo "ant-split *.n** & *.mdt"
-    echo 'script $1 <....wcnss>'
+    echo 'script $1 <..../wcnss>'
     # cd /mnt/scripts
     # 
     in_file_without=$2
@@ -2108,6 +2108,9 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     fi
     python ./pil-splitter.py $type $in_file_without
     cp $out_file_join_mbn $out_file_mbn
+    ;;
+126) echo "awk,print $NF, print the last partment"
+    ls /mnt/firehose_userdebug_0504/*.mbn|awk -F '/' '{print $NF}'
     ;;
 *) echo "others"
 	;;
