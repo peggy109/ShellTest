@@ -71,7 +71,8 @@ function fDiffTimeThreadsHold()
 }
 
 echo '$@:'"$@"' $#:'"$#"
-#echo '$0:'"$0"'$1:'"$1"
+echo '$0:'"$0"' $1:'"$1"
+script="$0"
 base_path=`dirname $0`
 log_path="$base_path""/""$1"
 #echo "base_path:"$base_path
@@ -2016,52 +2017,142 @@ openssl x509 -in ${keypath}/attestca.crt -inform PEM -out ${keypath}/attestca.ce
 
 openssl genrsa -out ${keypath}/attest.key -3 2048
 	;;
-123) echo "mv signed mbn from signed/<platform>/<sign_id>/ to signed/"
+123) echo "cp signed mbn from signed/<platform>/<sign_id>/ to signed/"
+    echo "cp signed b** from signed/<platform>/<sign_id>/ to signed/split"
     in_dir=$2
     out_dir=$3
-    for dir in `dir $in_dir`
+    out_dir_split="$out_dir""/split"
+    if [ ! -d $out_dir ] ; then
+        mkdir -p $out_dir
+    fi
+    if [ ! -d $out_dir_split ] ; then
+        mkdir -p $out_dir_split
+    fi
+    for dir in `dir "$in_dir""/8917/"`
     do
-        mbn="$in_dir""/""$dir""/*.mbn"
-        ls -l $mbn
+        mbn="$in_dir""/8917/""$dir""/*.mbn"
+        mdt="$in_dir""/8917/""$dir""/*.mdt"
+        b00="$in_dir""/8917/""$dir""/*.b**"
+#        ls -l $mbn
         cp $mbn $out_dir
+        cp $mdt $out_dir_split
+        cp $b00 $out_dir_split
     done
     ;;
-124) echo "sign mbn on $2, strored in $2/signed"
+124) echo "sign mbn on $2, strore signed mbn in $2/signed/<platform>/<sign_id>"
     in_dir=$2
-    out_dir="$2""/signed/"
+    out_dir=$3
     count=0
     count_ok=0
     count_fail=0
     count_missing=0
     msg_missing=""
     msg_fail=""
+    if [ ! -d $out_dir] ; then
+        mkdir -p $out_dir
+    fi
     for file in `dir $in_dir`
     do
         missing="f"
+        sign_id=""
         mbn="$in_dir""/""$file"
         echo "mbn:$mbn"
         if [ $file == "prog_emmc_firehose_8917.mbn" ]; then
-            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g prog_emmc_firehose_ddr -s
+            sign_id="prog_emmc_firehose_ddr"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "validated_emmc_firehose_8917.mbn" ]; then
-            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g validated_emmc_firehose_ddr -s
+            sign_id="validated_emmc_firehose_ddr"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "cmnlib.mbn" ]; then
-            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g cmnlib -s
+            sign_id="cmnlib"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "cmnlib64.mbn" ]; then
-            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g cmnlib64 -s
+            sign_id="cmnlib64"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "devcfg.mbn" ]; then
-            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g devcfg -s
+            sign_id="devcfg"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "emmc_appsboot.mbn" ]; then
-            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g appsbl -s
+            sign_id="appsbl"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "keymaster.mbn" ]; then
-            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g keymaster -s
+            sign_id="keymaster"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "rpm.mbn" ]; then
-            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g rpm -s
+            sign_id="rpm"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "sbl1.mbn" ]; then
-            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g sbl1 -s
+            sign_id="sbl1"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "tz.mbn" ]; then
-            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g qsee -s
+            sign_id="qsee"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "apsp.mbn" ]; then
+            sign_id="adsp"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "cpe_9335.mbn" ]; then
+            sign_id="cpe"
+#            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "cppf.mbn" ]; then
+            sign_id="cppf"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "dhsecapp.mbn" ]; then
+            sign_id="dhsecapp"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "fingerpr.mbn" ]; then
+            sign_id="fingerpr"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "fngap64.mbn" ]; then
+            sign_id="fngap64"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "gptest.mbn" ]; then
+            sign_id="gptest"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "isdbtmm.mbn" ]; then
+            sign_id="isdbtmm"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "mdtp.mbn" ]; then
+            sign_id="mdtp"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "modem.mbn" ]; then
+            sign_id="modem"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "qdsp6sw.mbn.mbn" ]; then
+            sign_id="modem"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "qmpsecap.mbn" ]; then
+            sign_id="qmpsecap"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "securemm.mbn" ]; then
+            sign_id="securemm"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "smplap32.mbn" ]; then
+            sign_id="smplap32"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "smplap64.mbn" ]; then
+            sign_id="smplap64"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "venus.mbn" ]; then
+            sign_id="venus"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "widevine.mbn" ]; then
+            sign_id="widevine"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "mba.mbn" ]; then
+            sign_id="mbas"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "mcfg_hw.mbn" ]; then
+            sign_id="mcfg_hw"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "mcfg_sw.mbn" ]; then
+            sign_id="mcfg_sw"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "wcnss.mbn" ]; then
-            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g wcnss -s
+            sign_id="wcnss"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "wcnss.mbn" ]; then
+            sign_id="wcnss"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         else 
             echo "ERROR: We dont know how to sign it?""$mbn"
             let count_missing=$count_missing+1
@@ -2070,7 +2161,13 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         fi
         if [ $? -eq 0 ] ; then
             if [ $missing == "f" ] ; then
-                let count_ok=$count_ok+1
+                out_mbn="$out_dir""/8917/""$sign_id""/""$file"
+                if [ -f $out_mbn ] ; then
+                    let count_ok=$count_ok+1
+                else
+                    let count_fail=$count_fail+1
+                    msg_fail="$msg_fail""\n""    $file"
+                fi
             fi
         else 
             if [ $missing == "f" ] ; then
@@ -2105,11 +2202,31 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     type=`file $in_file_mdt |awk -F ' ' '{print $3}'`
     if [ $type == "32-bit" ] ; then
         type="32"
+    elif [ $type == "64-bit" ] ; then
+        type="64"
     fi
     python ./pil-splitter.py $type $in_file_without
     cp $out_file_join_mbn $out_file_mbn
     ;;
-126) echo "awk,print $NF, print the last partment"
+126) echo "ant-split A File & sign A Folder & store A Folder"
+    path="$2"
+    fw_name="$3"
+    cd /mnt/scripts
+    $script 125 "$path""/""$fw_name"
+    cd /mnt/sectools_8917/sectools
+    $script 124 $path $path"/signed"
+    $script 123 $path"/signed" $path"/signed" 
+    ;;
+127) echo "sign A Folder & store A Folder"
+    path="$2"
+    cd /mnt/sectools_8917/sectools
+    $script 124 $path $path"/signed"
+    $script 123 $path"/signed" $path"/signed" 
+    ;;
+128) echo ""
+    $script 129
+    ;;
+129) echo "awk,print $NF, print the last partment"
     ls /mnt/firehose_userdebug_0504/*.mbn|awk -F '/' '{print $NF}'
     ;;
 *) echo "others"
