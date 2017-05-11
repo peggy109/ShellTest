@@ -76,7 +76,7 @@ script="$0"
 base_path=`dirname $0`
 log_path="$base_path""/""$1"
 #echo "base_path:"$base_path
-echo "log_path:"$log_path
+#echo "log_path:"$log_path
 if [ ! -d $log_path ] ; then
 	mkdir $log_path
 fi
@@ -2042,13 +2042,18 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 124) echo "sign mbn on $2, strore signed mbn in $2/signed/<platform>/<sign_id>"
     in_dir=$2
     out_dir=$3
+# count_mbn = count_ok + count_fail + count_missing
+# count = count_mbn + count_contine
     count=0
+    count_mbn=0
     count_ok=0
     count_fail=0
     count_missing=0
+    count_continue=0
     msg_missing=""
     msg_fail=""
-    if [ ! -d $out_dir] ; then
+    msg_continue=""
+    if [ ! -d $out_dir ] ; then
         mkdir -p $out_dir
     fi
     for file in `dir $in_dir`
@@ -2087,7 +2092,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         elif [ $file == "tz.mbn" ]; then
             sign_id="qsee"
             python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
-        elif [ $file == "apsp.mbn" ]; then
+        elif [ $file == "adsp.mbn" ]; then
             sign_id="adsp"
             python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "cpe_9335.mbn" ]; then
@@ -2117,7 +2122,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         elif [ $file == "modem.mbn" ]; then
             sign_id="modem"
             python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
-        elif [ $file == "qdsp6sw.mbn.mbn" ]; then
+        elif [ $file == "qdsp6sw.mbn" ]; then
             sign_id="modem"
             python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "qmpsecap.mbn" ]; then
@@ -2139,7 +2144,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
             sign_id="widevine"
             python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "mba.mbn" ]; then
-            sign_id="mbas"
+            sign_id="mba"
             python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         elif [ $file == "mcfg_hw.mbn" ]; then
             sign_id="mcfg_hw"
@@ -2150,13 +2155,16 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         elif [ $file == "wcnss.mbn" ]; then
             sign_id="wcnss"
             python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
-        elif [ $file == "wcnss.mbn" ]; then
-            sign_id="wcnss"
-            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         else 
-            echo "ERROR: We dont know how to sign it?""$mbn"
-            let count_missing=$count_missing+1
-            msg_missing="$msg_missing""\n""    $file"
+            suffix=`echo $file|awk -F '.' '{print $NF}'`
+            if [ $suffix == "mbn" ] ; then
+                echo "ERROR: We dont know how to sign it?""$mbn"
+                let count_missing=$count_missing+1
+                msg_missing="            $file""\n""$msg_missing"
+            else
+                let count_continue=$count_continue+1
+                msg_continue="        $file""\n""$msg_continue"
+            fi
             missing="t"
         fi
         if [ $? -eq 0 ] ; then
@@ -2166,53 +2174,65 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
                     let count_ok=$count_ok+1
                 else
                     let count_fail=$count_fail+1
-                    msg_fail="$msg_fail""\n""    $file"
+                    msg_fail="            $file""\n""msg_fail"
                 fi
             fi
         else 
             if [ $missing == "f" ] ; then
                 let count_fail=$count_fail+1
-                msg_fail="$msg_fail""\n""    $file"
+                msg_fail="            $file""\n""$msg_fail"
             fi    
         fi
         let count=$count+1
     done
-    echo "$count"" : Total"
-    echo "$count_ok"" : Sign OK"
-    echo "$count_fail"" : Sign Fail"
+    let count_mbn=$count-$count_continue
+    echo "$count"" : Total Files"
+    echo "    $count_mbn"" : Total MBNs"
+    echo "        $count_ok"" : MBNs Sign OK"
+    echo "        $count_fail"" : MBNs Sign Fail"
     echo -e "$msg_fail"
-    echo "$count_missing"" : Miss Cmds"
+    echo "        $count_missing"" : MBNs Miss Cmds"
     echo -e "$msg_missing"
+    echo "    $count_continue"" : non-MBNs ignore"
+#    echo -e "$msg_continue"
     ;;
 125) echo "ant-split *.n** & *.mdt"
-    echo 'script $1 <..../wcnss>'
+    echo 'script $1 <..../> <wcnss>'
+    echo "input : <path>"
+    echo "output : <path>/joined"
     # cd /mnt/scripts
     # 
-    in_file_without=$2
-    in_file_mdt="$2"".mdt"
-    out_file_mbn="$2"".mbn"
-    out_file_mbn_bak="$2"".mbn.bak"
-    out_file_join_mbn="$2""_join.mbn"
-    if [ ! -f $out_file_mbn_bak ] ; then
-    if [ -f $out_file_mbn ] ; then
-        cp $out_file_mbn $out_file_mbn_bak
+    path=$2
+    fw_name=$3
+    output_dir="$path""/joined"
+    in_file_without="$path""/""$fw_name"
+    in_file_mdt="$path""/""$fw_name"".mdt"
+    out_file_mbn="$output_dir""/""$fw_name"".mbn"
+    out_file_join_mbn="$path""/""$fw_name""_join.mbn"
+    if [ ! -d $output_dir ] ; then
+        mkdir -p $output_dir
     fi
-    fi
-    file $in_file_mdt |awk -F ' ' '{print $3}'
+    file $in_file_mdt
     type=`file $in_file_mdt |awk -F ' ' '{print $3}'`
     if [ $type == "32-bit" ] ; then
         type="32"
     elif [ $type == "64-bit" ] ; then
         type="64"
     fi
+    echo "    python ./pil-splitter.py $type $in_file_without"
     python ./pil-splitter.py $type $in_file_without
-    cp $out_file_join_mbn $out_file_mbn
+    mv $out_file_join_mbn $out_file_mbn
+    need_clean="true"
+    if [ $need_clean == "true" ] ; then
+        tmp_file="$path""/""$fw_name"".file"
+        rm $tmp_file
+    fi
     ;;
 126) echo "ant-split A File & sign A Folder & store A Folder"
     path="$2"
     fw_name="$3"
     cd /mnt/scripts
-    $script 125 "$path""/""$fw_name"
+    $script 125 "$path" "$fw_name"
     cd /mnt/sectools_8917/sectools
     $script 124 $path $path"/signed"
     $script 123 $path"/signed" $path"/signed" 
@@ -2223,10 +2243,31 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     $script 124 $path $path"/signed"
     $script 123 $path"/signed" $path"/signed" 
     ;;
-128) echo ""
-    $script 129
+128) echo "ant-split A folder,sign A folder,store A Folder"
+    path="$2"
+    fw_names=`ls $path|awk -F '.' '{print $1}'|sort|uniq`
+    echo "fw_name(s):""$fw_names"
+    # ant-split mdt & b0*
+    for fw_name in $fw_names
+    do
+        echo "fw_name:$fw_name"
+        mbn="$path""/""$fw_name"".mbn"
+        mdt="$path""/""$fw_name"".mdt"
+        if [ ! -f $mbn ] && [ -f $mdt ] ; then
+        # if mbn exists, just sign it, wont ant-split mdt & b0*
+            cd /mnt/scripts
+            $script 125 "$path" "$fw_name"
+        fi
+    done
+    cd /mnt/sectools_8917/sectools
+    $script 124 $path $path"/signed"
+    $script 124 $path"/joined" $path"/signed"
+    $script 123 $path"/signed" $path"/signed" 
     ;;
-129) echo "awk,print $NF, print the last partment"
+129) echo ""
+    $script 130
+    ;;
+130) echo "awk,print $NF, print the last partment"
     ls /mnt/firehose_userdebug_0504/*.mbn|awk -F '/' '{print $NF}'
     ;;
 *) echo "others"
