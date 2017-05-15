@@ -2286,6 +2286,30 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         let "index+=1"
     done
     ;;
+141) echo "generate keys to sign boot & system for company D"
+#pem  key key.pub
+    out/host/linux-x86/bin/generate_verity_key /mnt/keys_to_sign_boot3/key
+#der  key.der
+    openssl rsa -in /mnt/keys_to_sign_boot3/key -out /mnt/keys_to_sign_boot3/key.der -inform PEM -outform DER
+#    openssl rsa -in key -out key.der -inform pem -outform der
+#pem key.crt.pem
+    openssl req -new -x509 -days 7300 -key /mnt/keys_to_sign_boot3/key -out /mnt/keys_to_sign_boot3/key.crt.pem
+#der key.pub
+    out/host/linux-x86/bin/generate_verity_key -convert /mnt/keys_to_sign_boot3/key.crt.pem /mnt/keys_to_sign_boot3/key
+#pem key.pkcs8 der key.pkcs8.der
+    openssl pkcs8 -topk8 -inform PEM -in /mnt/keys_to_sign_boot3/key -outform pem -nocrypt -out /mnt/keys_to_sign_boot3/key.pkcs8
+    openssl pkcs8 -topk8 -inform PEM -in /mnt/keys_to_sign_boot3/key -outform der -nocrypt -out /mnt/keys_to_sign_boot3/key.pkcs8.der
+#pem key.pkcs8.der.pub == key.pkcs8
+    openssl pkcs8 -inform DER -nocrypt -in /mnt/keys_to_sign_boot3/key.pkcs8.der -out /mnt/keys_to_sign_boot3/key.pkcs8.der.pub
+#der key.pkcs8.der.pub.pubout
+    openssl rsa -in /mnt/keys_to_sign_boot3/key.pkcs8.der.pub -pubout -outform DER -out /mnt/keys_to_sign_boot3/key.pkcs8.der.pub.pubout
+#keystore.img
+    out/host/linux-x86/bin/keystore_signer /mnt/keys_to_sign_boot3/key.pkcs8.der /mnt/keys_to_sign_boot3/key.crt.pem /mnt/keys_to_sign_boot3/keystore.img /mnt/keys_to_sign_boot3/key.pkcs8.der.pub.pubout
+
+    cp /mnt/keys_to_sign_boot3/key.pkcs8.der /mnt/keys_to_sign_boot3/verity.pk8
+    cp /mnt/keys_to_sign_boot3/key.pub /mnt/keys_to_sign_boot3/verity_key
+    cp /mnt/keys_to_sign_boot3/key.crt.pem /mnt/keys_to_sign_boot3/verity.x509.pem
+    ;;
 *) echo "others"
 	;;
 esac
