@@ -2194,7 +2194,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     echo "        $count_missing"" : MBNs Miss Cmds"
     echo -e "$msg_missing"
     echo "    $count_continue"" : non-MBNs ignore"
-#    echo -e "$msg_continue"
+    echo -e "$msg_continue"
     ;;
 125) echo "ant-split *.n** & *.mdt"
     echo 'script $1 <..../> <wcnss>'
@@ -2269,6 +2269,22 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     ;;
 130) echo "awk,print $NF, print the last partment"
     ls /mnt/firehose_userdebug_0504/*.mbn|awk -F '/' '{print $NF}'
+    ;;
+
+140) 
+    index=0
+    for file in `find ~/non-hlos/image/ -name fingerpr.mdt`
+    do
+        echo "file:$file"
+        echo        cp $file "/home/server/fingerpr.mdt.""$index"
+        cp $file "/home/server/fingerpr.mdt.""$index"
+        if [ $index -eq 0 ] ; then
+            rm $file
+        fi
+        echo        cp $file "/home/server/fingerpr.mdt.""$index"
+        cp $file "/home/server/fingerpr.mdt.""$index"
+        let "index+=1"
+    done
     ;;
 *) echo "others"
 	;;
