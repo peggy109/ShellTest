@@ -2287,6 +2287,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     done
     ;;
 141) echo "generate keys to sign boot & system for company D"
+    exit 0
 #pem  key key.pub
     out/host/linux-x86/bin/generate_verity_key /mnt/keys_to_sign_boot3/key
 #der  key.der
@@ -2309,6 +2310,32 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cp /mnt/keys_to_sign_boot3/key.pkcs8.der /mnt/keys_to_sign_boot3/verity.pk8
     cp /mnt/keys_to_sign_boot3/key.pub /mnt/keys_to_sign_boot3/verity_key
     cp /mnt/keys_to_sign_boot3/key.crt.pem /mnt/keys_to_sign_boot3/verity.x509.pem
+    ;;
+142) echo "pull file* ~/"
+    s=$2
+    t=$3
+    files=`adb shell ls $s"*"`
+    for file in $files
+    do
+        adb shell ls $file
+        if [ $? -eq 0 ] ; then
+            echo "file:$file"
+            adb pull $file $t
+        fi
+    done
+    ;;
+143) echo ""
+    s=$2
+    t=$3
+    files=`ls "$s"*`
+    for file in $files
+    do
+        ls $file
+        if [ $? -eq 0 ] ; then
+            echo "file:$file"
+            adb push $file $t
+        fi
+    done
     ;;
 *) echo "others"
 	;;
