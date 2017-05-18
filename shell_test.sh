@@ -2234,7 +2234,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cd /mnt/scripts
     $script 125 "$path" "$fw_name"
     cd /mnt/sectools_8917/sectools
-    $script 124 $path $path"/signed"
+    $script 124 $path"/joined" $path"/signed"
     $script 123 $path"/signed" $path"/signed" 
     ;;
 127) echo "sign A Folder & store A Folder"
