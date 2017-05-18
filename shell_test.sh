@@ -2337,6 +2337,23 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         fi
     done
     ;;
+144) echo ""
+    mkdir ~/d
+    touch ~/d/f1
+    touch ~/d/f2
+    touch ~/d/f3
+#
+#/home/server/d/f1  /home/server/d/f2  /home/server/d/f3
+#/home/server/d/f1  /home/server/d/f2  /home/server/d/f3
+#ls: cannot access /home/server/d/f*: No such file or directory
+#ls: cannot access /home/server/d/f*: No such file or directory
+#
+    ls /home/server/d/f*
+    ls "/home/server/d/f"*
+    ls /home/server/d/f"*"
+    ls "/home/server/d/f""*"
+    
+    ;;
 *) echo "others"
 	;;
 esac
