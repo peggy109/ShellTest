@@ -1,4 +1,5 @@
 #!/bin/bash
+
 #return 1,if time2 > time1
 function usage()
 {
@@ -71,11 +72,14 @@ function fDiffTimeThreadsHold()
 }
 
 echo '$@:'"$@"' $#:'"$#"
-echo '$0:'"$0"' $1:'"$1"
-script="$0"
+#echo '$0:'"$0"' $1:'"$1"
 base_path=`dirname $0`
-log_path="$base_path""/""$1"
-#echo "base_path:"$base_path
+script_name=`basename $0`
+script_path=`cd $base_path;pwd`
+script="$script_path""/""$script_name"
+
+log_path="$script_path""/""$1"
+#echo "script_path:"$script_path
 #echo "log_path:"$log_path
 if [ ! -d $log_path ] ; then
 	mkdir $log_path
@@ -2017,8 +2021,8 @@ openssl x509 -in ${keypath}/attestca.crt -inform PEM -out ${keypath}/attestca.ce
 
 openssl genrsa -out ${keypath}/attest.key -3 2048
 	;;
-123) echo "cp signed mbn from signed/<platform>/<sign_id>/ to signed/"
-    echo "cp signed b** from signed/<platform>/<sign_id>/ to signed/split"
+123) #echo "cp signed mbn from $2/<platform>/<sign_id>/ to $3"
+    #echo "cp signed b** from $2/<platform>/<sign_id>/ to $3/split"
     in_dir=$2
     out_dir=$3
     out_dir_split="$out_dir""/split"
@@ -2028,18 +2032,20 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     if [ ! -d $out_dir_split ] ; then
         mkdir -p $out_dir_split
     fi
-    for dir in `dir "$in_dir""/8917/"`
-    do
-        mbn="$in_dir""/8917/""$dir""/*.mbn"
-        mdt="$in_dir""/8917/""$dir""/*.mdt"
-        b00="$in_dir""/8917/""$dir""/*.b**"
-#        ls -l $mbn
-        cp $mbn $out_dir
-        cp $mdt $out_dir_split
-        cp $b00 $out_dir_split
-    done
+    if [ -d "$in_dir""/8917/" ] ; then
+        for dir in `dir "$in_dir""/8917/"`
+        do
+            mbn="$in_dir""/8917/""$dir""/*.mbn"
+            mdt="$in_dir""/8917/""$dir""/*.mdt"
+            b00="$in_dir""/8917/""$dir""/*.b**"
+    #        ls -l $mbn
+            cp $mbn $out_dir
+            cp $mdt $out_dir_split
+            cp $b00 $out_dir_split
+        done
+    fi
     ;;
-124) echo "sign mbn on $2, strore signed mbn in $2/signed/<platform>/<sign_id>"
+124) echo "sign mbn on $2/, strore signed mbn in $3/<platform>/<sign_id>"
     in_dir=$2
     out_dir=$3
 # count_mbn = count_ok + count_fail + count_missing
@@ -2061,7 +2067,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         missing="f"
         sign_id=""
         mbn="$in_dir""/""$file"
-        echo "mbn:$mbn"
+        echo "file:$mbn"
         if [ $file == "prog_emmc_firehose_8917.mbn" ]; then
             sign_id="prog_emmc_firehose_ddr"
             python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
@@ -2228,6 +2234,34 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         rm $tmp_file
     fi
     ;;
+1255) #echo "ant-split A File,stored in $4"
+    # cd /mnt/scripts
+    path=$2
+    fw_name=$3
+    output_dir=$4
+    in_file_without="$path""/""$fw_name"
+    in_file_mdt="$path""/""$fw_name"".mdt"
+    out_file_mbn="$output_dir""/""$fw_name"".mbn"
+    out_file_join_mbn="$path""/""$fw_name""_join.mbn"
+    if [ ! -d $output_dir ] ; then
+        mkdir -p $output_dir
+    fi
+    file $in_file_mdt
+    type=`file $in_file_mdt |awk -F ' ' '{print $3}'`
+    if [ $type == "32-bit" ] ; then
+        type="32"
+    elif [ $type == "64-bit" ] ; then
+        type="64"
+    fi
+    echo "    python ./pil-splitter.py $type $in_file_without"
+    python ./pil-splitter.py $type $in_file_without
+    mv $out_file_join_mbn $out_file_mbn
+    need_clean="true"
+    if [ $need_clean == "true" ] ; then
+        tmp_file="$path""/""$fw_name"".file"
+        rm $tmp_file
+    fi
+    ;;
 126) echo "ant-split A File & sign A Folder & store A Folder"
     path="$2"
     fw_name="$3"
@@ -2236,6 +2270,17 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cd /mnt/sectools_8917/sectools
     $script 124 $path"/joined" $path"/signed"
     $script 123 $path"/signed" $path"/signed" 
+    ;;
+1266) echo "ant-split A File & sign a Folder arg4 & store a Folder arg5"
+    path="$2"
+    fw_name="$3"
+    signed_path=$4
+    joined_path=$5
+    cd /mnt/scripts
+    $script 1255 "$path" "$fw_name" $joined_path
+    cd /mnt/sectools_8917/sectools
+    $script 124 $joined_path $signed_path
+    $script 123 $signed_path $signed_path 
     ;;
 127) echo "sign A Folder & store A Folder"
     path="$2"
@@ -2264,13 +2309,115 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     $script 124 $path"/joined" $path"/signed"
     $script 123 $path"/signed" $path"/signed" 
     ;;
+1288) echo "ant-split A folder $2,sign folder $2,sign folder $4 ,store a folder $3"
+    path="$2"
+    signed_path=$3
+    joined_path=$4
+    rm -rf $signed_path"/"*
+    rm -rf $joined_path"/"*
+    fw_names=`ls $path|awk -F '.' '{print $1}'|sort|uniq`
+    echo "fw_name(s):""$fw_names"
+    # ant-split mdt & b0*
+    for fw_name in $fw_names
+    do
+#        echo "fw_name:$fw_name"
+        mbn="$path""/""$fw_name"".mbn"
+        mdt="$path""/""$fw_name"".mdt"
+        if [ ! -f $mbn ] && [ -f $mdt ] ; then
+        # if mbn exists, just sign it, wont ant-split mdt & b0*
+            cd /mnt/scripts
+            $script 1255 "$path" "$fw_name" $joined_path
+        fi
+    done
+    cd /mnt/sectools_8917/sectools
+    $script 124 $path $signed_path
+    $script 124 $joined_path $signed_path
+    $script 123 $signed_path $signed_path
+    ;;
 129) echo ""
     $script 130
     ;;
 130) echo "awk,print $NF, print the last partment"
     ls /mnt/firehose_userdebug_0504/*.mbn|awk -F '/' '{print $NF}'
     ;;
-
+131) echo "ant-split A folder,sign A folder,store A Folder,"
+    echo "similar to 1288,besides, clean"
+    ;;
+132) #echo "ant-split A folder arg2 recursively,sign folder arg3,store a folder arg4,override"
+    path="$2"
+    signed_path=$3
+    joined_path=$4
+    $script 1333 $path $signed_path $joined_path
+    sons=`ls $path`
+    for son in $sons
+    do
+        son_path="$path""/""$son"        
+#        echo "son:$son_path"
+        if [ -d $son_path ] ; then
+            echo "dir $son_path"
+            $script 132 $son_path $signed_path $joined_path
+        fi
+    done
+    ;;
+1333) echo "ant-split A folder arg2,sign folder arg3,store a folder arg4,override"
+    path="$2"
+    signed_path=$3
+    joined_path=$4
+    split_path="$signed_path""/split"
+    $script 1288 $path $signed_path $joined_path
+    mbns_signed=`ls "$signed_path""/"*"."*`
+    for mbn_signed in $mbns_signed
+    do
+        file_name=`basename $mbn_signed`
+        mbn_origin="$path""/""$file_name"
+        echo "mbn_origin:""$mbn_origin"
+        if [ -f $mbn_origin ] ; then
+            echo "to be overrider1:""$mbn_signed"" -> ""$mbn_origin"
+            cp $mbn_signed $mbn_origin
+        fi
+    done
+    mdts_signed=`ls "$split_path""/"*"."*`
+    for mdt_signed in $mdts_signed
+    do
+        file_name=`basename $mdt_signed`
+        mdt_origin="$path""/""$file_name"
+        echo "mdt_origin:""$mdt_origin"
+        if [ -f $mdt_origin ] ; then
+            echo "to be overrider2:""$mdt_signed"" -> ""$mdt_origin"
+            cp $mdt_signed $mdt_origin
+        fi
+    done
+    ;;
+1344) echo "ant-split A File arg2 & arg3,sign folder arg4,store a folder arg5,override"
+    path="$2"
+    fw_name="$3"
+    signed_path=$4
+    joined_path=$5
+    split_path="$signed_path""/split"
+    $script 1266 $path $fw_name $signed_path $joined_path
+    mbns_signed=`ls "$signed_path""/""$fw_name""."*`
+    for mbn_signed in $mbns_signed
+    do
+        file_name=`basename $mbn_signed`
+        mbn_origin="$path""/""$file_name"
+        echo "mbn_origin:""$mbn_origin"
+        if [ -f $mbn_origin ] ; then
+            echo "to be overrider:""$mbn_origin"
+            cp $mbn_signed $mbn_origin
+        fi
+    done
+    mdts_signed=`ls "$split_path""/""$fw_name""."*`
+    for mdt_signed in $mdts_signed
+    do
+        file_name=`basename $mdt_signed`
+        mdt_origin="$path""/""$file_name"
+        echo "mdt_origin:""$mdt_origin"
+        if [ -f $mdt_origin ] ; then
+            echo "to be overrider:""$mdt_origin"
+            cp $mdt_signed $mdt_origin
+        fi
+    done
+    ;;
 140) 
     index=0
     for file in `find ~/non-hlos/image/ -name fingerpr.mdt`
@@ -2311,10 +2458,11 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cp /mnt/keys_to_sign_boot3/key.pub /mnt/keys_to_sign_boot3/verity_key
     cp /mnt/keys_to_sign_boot3/key.crt.pem /mnt/keys_to_sign_boot3/verity.x509.pem
     ;;
-142) echo "pull file* ~/"
+142) echo "adb pull file*"
     s=$2
     t=$3
-    files=`adb shell ls $s"*"`
+    name=$4
+    files=`adb shell ls $s"/""$name""*"`
     for file in $files
     do
         adb shell ls $file
@@ -2324,10 +2472,11 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         fi
     done
     ;;
-143) echo ""
+143) echo "adb push <path>/<file_name> <path>"
     s=$2
-    t=$3
-    files=`ls "$s"*`
+    name=$3
+    t=$4
+    files=`ls "$s""/""$name"*`
     for file in $files
     do
         ls $file
@@ -2353,6 +2502,22 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     ls /home/server/d/f"*"
     ls "/home/server/d/f""*"
     
+    ;;
+145) echo "get shell's path"
+    dir=`dirname $0`
+    echo "dir:"$dir
+    path=`cd $dir;pwd`
+    ;;
+200)
+    path="/home/server/d1"
+    rm -rf $path"/"*
+    ;;
+146) echo "remount /firmware"
+    adb root;adb wait-for-device;
+    adb shell mount |grep firmware
+    adb shell umount /firmware;
+    adb shell mount -t vfat -o rw /dev/block/mmcblk0p1 /firmware
+    adb shell mount |grep firmware
     ;;
 *) echo "others"
 	;;
