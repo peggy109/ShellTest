@@ -2282,11 +2282,12 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     $script 124 $joined_path $signed_path
     $script 123 $signed_path $signed_path 
     ;;
-127) echo "sign A Folder & store A Folder"
+127) echo "sign A Folder $2 & store to Folder $3"
     path="$2"
+    signed_path=$3
     cd /mnt/sectools_8917/sectools
-    $script 124 $path $path"/signed"
-    $script 123 $path"/signed" $path"/signed" 
+    $script 124 $path $signed_path
+    $script 123 $signed_path $signed_path
     ;;
 128) echo "ant-split A folder,sign A folder,store A Folder"
     path="$2"
@@ -2415,6 +2416,22 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         if [ -f $mdt_origin ] ; then
             echo "to be overrider:""$mdt_origin"
             cp $mdt_signed $mdt_origin
+        fi
+    done
+    ;;
+1355) echo "sign A Folder $2 & store to Folder $3,override"
+    path="$2"
+    signed_path=$3
+    $script 127 $path $signed_path
+    mbns_signed=`ls "$signed_path""/"*"."*`
+    for mbn_signed in $mbns_signed
+    do
+        file_name=`basename $mbn_signed`
+        mbn_origin="$path""/""$file_name"
+        echo "mbn_origin:""$mbn_origin"
+        if [ -f $mbn_origin ] ; then
+            echo "to be overrider:""$mbn_signed"" -> ""$mbn_origin"
+            cp $mbn_signed $mbn_origin
         fi
     done
     ;;
