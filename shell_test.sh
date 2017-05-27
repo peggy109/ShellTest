@@ -77,7 +77,7 @@ base_path=`dirname $0`
 script_name=`basename $0`
 script_path=`cd $base_path;pwd`
 script="$script_path""/""$script_name"
-
+echo "script : ""$script"
 log_path="$script_path""/""$1"
 #echo "script_path:"$script_path
 #echo "log_path:"$log_path
