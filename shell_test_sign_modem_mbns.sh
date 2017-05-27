@@ -9,8 +9,14 @@ mount_point="$workspace""/modem"
 joined_path="$workspace""/joined"
 signed_path="$workspace""/signed"
 
-sign_modem="/mnt/github/ShellTest/shell_test_sign_modem.sh"
-sign_mbns="/mnt/github/ShellTest/shell_test_sign_mbns.sh"
+base_path=`dirname $0`
+script_name=`basename $0`
+script_path=`cd $base_path;pwd`
+current_script="$script_path""/""$script_name"
+echo "current_script : ""$current_script"
+
+sign_modem="$script_path""/shell_test_sign_modem.sh"
+sign_mbns="$script_path""/shell_test_sign_mbns.sh"
 
 if [ ! -f $BIN ] ; then
     echo "They should have been existed: $BIN ."

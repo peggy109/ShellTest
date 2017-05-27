@@ -13,7 +13,14 @@ if [ ! -d $mount_point ] || [ ! -d $joined_path ] || [ ! -d $signed_path ] ; the
     exit -1;
 fi
 dat=`date +%Y%m%d_%H%M%S`
-script="/mnt/github/ShellTest/shell_test.sh"
+
+base_path=`dirname $0`
+script_name=`basename $0`
+script_path=`cd $base_path;pwd`
+current_script="$script_path""/""$script_name"
+echo "current_script : ""$current_script"
+
+script="$script_path""/shell_test.sh"
 log="/tmp/log.""$dat"".sign_non_hlos"
 echo "tyd1111" |sudo -S mount $BIN $mount_point
 echo "tyd1111" |sudo -S $script 132 $image_path $signed_path $joined_path |tee $log
