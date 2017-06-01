@@ -2327,7 +2327,9 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         if [ ! -f $mbn ] && [ -f $mdt ] ; then
         # if mbn exists, just sign it, wont ant-split mdt & b0*
             cd /mnt/scripts
+            echo $script 1255 "$path" "$fw_name" $joined_path
             $script 1255 "$path" "$fw_name" $joined_path
+            ls -l $joined_path
         fi
     done
     cd /mnt/sectools_8917/sectools
@@ -2530,11 +2532,35 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     rm -rf $path"/"*
     ;;
 146) echo "remount /firmware"
-    adb root;adb wait-for-device;
+#    adb root;adb wait-for-device;
     adb shell mount |grep firmware
     adb shell umount /firmware;
     adb shell mount -t vfat -o rw /dev/block/mmcblk0p1 /firmware
     adb shell mount |grep firmware
+    ;;
+147) echo ""
+    mdts=`find $2 -name "*.mdt"`
+    for mdt in $mdts
+    do
+        hexdump -C $mdt|grep -ie shanghai
+        if [ $? -ne 0 ] ; then
+            echo "************* ERROR ************mdt=""$mdt"
+        else
+            echo 
+        fi
+        
+    done
+    mdts=`find $2 -name "*.mbn"`
+    for mdt in $mdts
+    do
+        hexdump -C $mdt|grep -ie shanghai
+        if [ $? -ne 0 ] ; then
+            echo "************* ERROR ************mbn=""$mdt"
+        else
+            echo 
+        fi
+        
+    done
     ;;
 *) echo "others"
 	;;
