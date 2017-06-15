@@ -2161,6 +2161,9 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         elif [ $file == "wcnss.mbn" ]; then
             sign_id="wcnss"
             python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
+        elif [ $file == "lksecapp.mbn" ]; then
+            sign_id="lksecapp"
+            python ./sectools.py secimage -c config/8917/8917_secimage.xml -o $out_dir -i $mbn -g $sign_id -s
         else 
             suffix=`echo $file|awk -F '.' '{print $NF}'`
             if [ $suffix == "mbn" ] ; then
@@ -2578,7 +2581,52 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cp "$path_mount_point""/image/modem."* $workspace
     $script 1344 $workspace modem $path_signed $path_joined
     sudo cp $workspace"/modem."* $path_mount_point"/image/"
+	sudo umount $path_mount_point
     ;;
+149) echo "find mbn,override it !"
+	name=$2
+	path=$3
+	file=$4
+	mbns=`find $path -name $name`
+	for mbn in $mbns
+	do
+		echo "mbn:$mbn  : to be overrided"
+		echo cp $file $mbn
+		cp $file $mbn
+		if [ $? -ne 0 ] ; then
+			echo "**************ERROR*********"
+			exit -1
+		fi
+	done
+	;;
+150) echo "override mbn and sec.dat on modem/"
+    echo 'cp $s_path/xxx.mbn $t_path/....../xxx.mbn'
+	t_path=$2
+	s_path=$3
+	filenames="cmnlib64.mbn cmnlib.mbn devcfg.mbn keymaster.mbn lksecapp.mbn rpm.mbn sbl1.mbn tz.mbn sec.dat NON-HLOS.bin"
+	for filename in $filenames
+	do
+		echo "************$filename********************$filename*******************$filename********************$filename*******************$filename******************"
+		s_file="$s_path""/"$filename
+		$script 149 $filename $t_path $s_file
+		if [ $? -ne 0 ] ; then
+			echo "**************ERROR*********"
+			exit -1
+		fi
+		done
+	filename="prog_emmc_firehose_8917_ddr.mbn"
+	$script 149 $filename $t_path "$s_path""/""prog_emmc_firehose_8917.mbn"
+			if [ $? -ne 0 ] ; then
+			echo "**************ERROR*********"
+			exit -1
+		fi
+	filename="validated_emmc_firehose_8917_ddr.mbn"
+	$script 149 $filename $t_path $s_path"/""validated_emmc_firehose_8917.mbn"
+			if [ $? -ne 0 ] ; then
+			echo "**************ERROR*********"
+			exit -1
+		fi
+	;;
 *) echo "others"
 	;;
 esac
