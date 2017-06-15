@@ -2664,6 +2664,34 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 		mv $f $new_file
 	done
 	;;
+153) echo "handle big txt,ignore line if line length > 1024"
+	echo "bad!"
+	exit 1;
+	f=$2
+	out=$f".2"
+	for l in `cat $f`
+	do
+		size=`echo $l | wc -c`
+		echo size: $size "($l)"
+		if [ $size -lt 1024 ] ; then
+			echo $1 >> $out
+		fi
+	done
+	;;
+154) echo "handle big txt,ignore line if line length > 1024"
+    echo "bad!"
+    exit 1;
+	f=$2
+	out="$2"".2"
+	while read l
+	do
+		size=`echo $l | wc -c`
+		echo size: $size
+		if [ $size -lt 1024 ] ; then
+			echo $1 >> $out
+		fi
+	done < $f
+	;;
 *) echo "others"
 	;;
 esac
