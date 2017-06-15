@@ -2261,6 +2261,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         tmp_file="$path""/""$fw_name"".file"
         rm $tmp_file
     fi
+    ls -l $output_dir
     ;;
 126) echo "ant-split A File & sign A Folder & store A Folder"
     path="$2"
@@ -2561,6 +2562,22 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         fi
         
     done
+    ;;
+148) echo "temporary fix sign NON-HLOS.bin, sign modem.mdt handly"
+    BIN=$2
+    dat=`date +%Y%m%d_%H%M%S`
+    workspace="/tmp/workspace_""$dat"
+    path_joined="$workspace""/joined"
+    path_signed="$workspace""/signed"
+    path_mount_point="$workspace""/mount_point"
+    mkdir -p $workspace
+    mkdir -p $path_mount_point
+    mkdir -p $path_joined
+    mkdir -p $path_signed
+    sudo mount $BIN $path_mount_point
+    cp "$path_mount_point""/image/modem."* $workspace
+    $script 1344 $workspace modem $path_signed $path_joined
+    sudo cp $workspace"/modem."* $path_mount_point"/image/"
     ;;
 *) echo "others"
 	;;
