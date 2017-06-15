@@ -2654,6 +2654,16 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 			echo $mbn" " >> ~/mbn.txt
 			done
 	;;
+152) echo "mv <file.name> to <file.name.back>"
+	file_name=$2
+	path=$3
+	for f in `find $path -name $file_name`
+	do
+		new_file="$f"".back"
+		echo "cmd: " mv $f $new_file
+		mv $f $new_file
+	done
+	;;
 *) echo "others"
 	;;
 esac
