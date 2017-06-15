@@ -2627,6 +2627,33 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 			exit -1
 		fi
 	;;
+151) echo "find mbn to be modified"
+	filenames="cmnlib64.mbn cmnlib.mbn devcfg.mbn keymaster.mbn lksecapp.mbn rpm.mbn sbl1.mbn tz.mbn sec.dat NON-HLOS.bin"
+	t_path="/home/release/temp/modem/"
+	for filename in $filenames
+	do
+			mbns=`find $t_path -name $filename`
+			for mbn in $mbns
+			do
+			echo "mbn: $mbn"
+			echo $mbn" " >> ~/mbn.txt
+			done
+	done
+	filename="prog_emmc_firehose_8917_ddr.mbn"
+			mbns=`find $t_path -name $filename`
+			for mbn in $mbns
+			do
+			echo "mbn: $mbn"
+			echo $mbn" " >> ~/mbn.txt
+			done
+	filename="validated_emmc_firehose_8917_ddr.mbn"
+			mbns=`find $t_path -name $filename`
+			for mbn in $mbns
+			do
+			echo "mbn: $mbn"
+			echo $mbn" " >> ~/mbn.txt
+			done
+	;;
 *) echo "others"
 	;;
 esac
