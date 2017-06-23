@@ -71,6 +71,74 @@ function fDiffTimeThreadsHold()
 	fi
 }
 
+function get_images_to_sign()
+{
+	echo "fdl1.bin
+u-boot-spl-16k.bin 
+
+fdl2.bin    
+u-boot.bin          
+
+boot.img                     
+recovery.img         
+
+SC9600_sharkls_3593_CUST_Base_NV_MIPI.dat  
+LTE_DSP.bin  
+PM_sharkls_arm7.bin  
+SC9600_sharkl_wphy_5mod_volte_zc.bin       
+SHARKL_DM_DSP.bin                         
+fdl1.bin(1)  
+EXEC_KERNEL_IMAGE0.bin  
+"
+}
+function get_images_to_sign_for_sprd_V4()
+{
+    echo "fdl1.bin
+fdl2.bin  
+u-boot-spl-16k.bin  
+ltemodem.bin   
+ltedsp.bin   
+ltegdsp.bin 
+ltewarm.bin  
+pmsys.bin   
+wcnfdl.bin
+wcnmodem.bin
+boot.img    
+recovery.img          
+u-boot.bin   
+"
+}
+function get_images_to_override()
+{
+get_images_to_sign
+echo "
+SharkLSGLobalMarlinAndroid5.1.xml  
+system.img          
+userdata.img
+cache.img               
+nvitem.bin   
+prodnv.img                    
+welcome_720x1280.bmp
+persist.img  
+sysinfo.img                        
+welcome_720x1280.bmp(1)
+"
+}
+function get_images_to_override_for_sprd_V4()
+{
+get_images_to_sign_for_sprd_V4
+echo "ltenvitem.bin  
+prodnv.img  
+system.img
+userdata.img 
+logo1.bmp  
+logo2.bmp 
+cache.img  
+persist.img  
+sysinfo.img 
+SharkLS5ModeMarlinAndroid5.1.xml
+"
+}
 echo '$@:'"$@"' $#:'"$#"
 #echo '$0:'"$0"' $1:'"$1"
 base_path=`dirname $0`
@@ -2692,8 +2760,79 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 		fi
 	done < $f
 	;;
+155) echo "spreadtrum,mv signed images to <path>/signed/override"
+    echo "spreadtrum"
+    signed="signed"
+    override=$signed"/override"
+    mkdir $signed
+    mkdir $override
+    images=$(get_images_to_sign_for_sprd_V4)
+    for image in $images
+    do
+        postfix=`echo $image|awk -F '.' '{print $NF}'`
+        signed_file_name=""
+        echo "$postfix" |grep "("
+        if [ $? -eq 0 ] ; then
+            # special handle to xxx.xxx(1)
+            postfix2=`echo $postfix|awk -F '(' '{print $1}'`
+            file_name=`echo $image|awk -F ".$postfix2" '{print $1}'`
+            signed_file_name="$file_name""-sign"".""$postfix"
+            echo "postfix=$postfix"
+            echo "postfix2=$postfix2"
+            echo "echo $image|awk -F ".$postfix" '{print $1}'"
+            echo "file_name=$file_name"
+            echo "signed_file_name=$signed_file_name"
+        else
+            file_name=`echo $image|awk -F ".$postfix" '{print $1}'`
+            signed_file_name="$file_name""-sign"".""$postfix"
+        fi 
+        mv $signed_file_name $signed"/"$signed_file_name
+        cp $signed"/"$signed_file_name "$override""/""$image"
+    done
+    ;;
+156) echo "cp out/target/product/generic/xxx <store_path>"
+    echo "spreadtrum"
+    store_path=$2
+    out_target_product_dir=$3
+    images=$(get_images_to_override_for_sprd_V4)
+    for image in $images
+    do
+        #echo cp "$out_target_product_dir""/""$image" $store_path
+        ls -l "$out_target_product_dir""/""$image"
+        cp "$out_target_product_dir""/""$image" $store_path
+    done
+    ;;
+157) echo "cp out/target/product/generic/xxx PCKs"
+    echo "sign PCKs ,overide PCKS"
+    echo "spreadtrum"
+    store_path="PCKs"
+    out_target_product_dir="out/target/product/sp9832a_3h10_volte"
+    current_dir=`pwd`
+    sprd_secure_boot_tool_path="vendor/sprd/open-source/tools/sprd_secure_boot_tool/"
+    dat=`date +%Y%m%d_%H%M%S`
+    store_path="$current_dir""/""$store_path""/""$dat""_signed"
+    if [ ! -d $store_path ] ; then
+        mkdir -p $store_path
+    fi
+    images=$(get_images_to_override_for_sprd_V4)
+    for image in $images
+    do
+        #echo cp "$out_target_product_dir""/""$image" $store_path
+        ls -l "$out_target_product_dir""/""$image"
+        cp "$out_target_product_dir""/""$image" $store_path
+    done
+    cd "$current_dir""/""$sprd_secure_boot_tool_path"
+    pwd
+    /bin/bash ./sig_script.sh $store_path
+    cd $store_path
+    $script 155
+    cd $current_dir
+    cp $store_path"/signed/override/"* $store_path
+    rm -rf $store_path"/signed/"
+    ;;
 *) echo "others"
 	;;
 esac
 exit
+
 ##script $1 $2
