@@ -91,22 +91,36 @@ fdl1.bin(1)
 EXEC_KERNEL_IMAGE0.bin  
 "
 }
-function get_images_to_sign_for_sprd_V4()
+function get_images_to_sign_BSC_BIN_for_sprd_V4()
 {
     echo "fdl1.bin
-fdl2.bin  
 u-boot-spl-16k.bin  
+"
+}
+function get_images_to_sign_VLR_BIN_for_sprd_V4()
+{
+    echo "
+fdl2.bin  
+u-boot.bin   
+"
+}
+function get_images_to_sign_VLR_OTHER_BIN_for_sprd_V4()
+{
+    echo "
 ltemodem.bin   
 ltedsp.bin   
 ltegdsp.bin 
 ltewarm.bin  
 pmsys.bin   
-wcnfdl.bin
-wcnmodem.bin
 boot.img    
 recovery.img          
-u-boot.bin   
 "
+}
+function get_images_to_sign_for_sprd_V4()
+{
+get_images_to_sign_BSC_BIN_for_sprd_V4
+get_images_to_sign_VLR_BIN_for_sprd_V4
+get_images_to_sign_VLR_OTHER_BIN_for_sprd_V4
 }
 function get_images_to_override()
 {
@@ -136,6 +150,8 @@ logo2.bmp
 cache.img  
 persist.img  
 sysinfo.img 
+wcnfdl.bin
+wcnmodem.bin
 SharkLS5ModeMarlinAndroid5.1.xml
 "
 }
@@ -2791,7 +2807,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     done
     ;;
 156) echo "cp out/target/product/generic/xxx <store_path>"
-    echo "spreadtrum"
+    echo "spreadtrum,sp9832a_3h10_volte"
     store_path=$2
     out_target_product_dir=$3
     images=$(get_images_to_override_for_sprd_V4)
@@ -2804,9 +2820,12 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     ;;
 157) echo "cp out/target/product/generic/xxx PCKs"
     echo "sign PCKs ,overide PCKS"
-    echo "spreadtrum"
+    echo "spreadtrum,sp9832a_3h10_volte"
     store_path="PCKs"
     out_target_product_dir="out/target/product/sp9832a_3h10_volte"
+    if [ $# -eq 3 ] && [ $2 == "-i" ]; then
+        out_target_product_dir=$3
+    fi
     current_dir=`pwd`
     sprd_secure_boot_tool_path="vendor/sprd/open-source/tools/sprd_secure_boot_tool/"
     dat=`date +%Y%m%d_%H%M%S`
@@ -2830,9 +2849,171 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cp $store_path"/signed/override/"* $store_path
     rm -rf $store_path"/signed/"
     ;;
+
+159) echo "given image.signed & image.unsigned"
+    echo "diff = image.signed - image.unsigned"
+    echo "let image.singed.new = image.unsigned + diff = image_signed"
+    # image.singed     image.unsigned
+    # part1
+    # part2      ==    image.unsigned
+    # part3
+    #
+    # image.signed = part1 + image.unsigned + part3
+    image_signed="$2"
+    imag_unsigned="$3"
+    image_signed_new=$4
+    image_signed_p1_size=$5
+
+    image_signed_1="/tmp/image_signed_part1"
+    image_signed_3="/tmp/image_signed_part3"
+
+    image_unsigned_1_and_2="/tmp/image_unsigned_part12"
+    image_unsigned_1_and_2_and_3="/tmp/image_unsigned_part123"
+
+
+    dd if="$image_signed" of="$image_signed_1" bs=$image_signed_p1_size count=1
+    cat $image_signed_1 $imag_unsigned > $image_unsigned_1_and_2
+
+    size_image_unsigned_1_and_2=`wc -c < $image_unsigned_1_and_2`
+#    echo "size=$size_image_unsigned_1_and_2 (end)"
+    dd if="$image_signed" of="$image_signed_3" bs=$size_image_unsigned_1_and_2 skip=1
+    cat $image_unsigned_1_and_2 $image_signed_3 > $image_unsigned_1_and_2_and_3
+
+    diff $image_signed $image_unsigned_1_and_2_and_3
+    if [ $? -eq 0 ] ; then
+        cp $image_unsigned_1_and_2_and_3 $image_signed_new
+    else
+        echo "ERROR******************"
+        echo "     :create $image_signed_new from $image_signed & $imag_unsigned failed!"
+        exit 1;
+    fi
+    
+    #clean
+    rm $image_signed_1 $image_signed_3 $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+    ;;
+160)  echo "given folder1 signed & folder unsigned"
+    echo "diff = image.signed - image.unsigned"
+    echo "let image.singed.new = image.unsigned + diff = image_signed"
+    echo "MTK, bv303b"
+    signed_dir=$2
+    unsigned_dir=$3
+    for file in `dir "$signed_dir"`
+    do  
+        image_signed="$signed_dir""/""$file"
+        image_unsigned="$unsigned_dir""/""$file"
+        image_signed_new="$image_unsigned"".new"
+        # 0x4040 = 16448
+        $script 159 $image_signed $image_unsigned $image_signed_new 16448
+        if [ $? -ne 0 ] ; then
+            exit 1;
+        fi
+    done
+    ;;
+161) echo "given image.signed & image.unsigned"
+    echo "diff = image.signed - image.unsigned"
+    echo "let image.singed.new = image.unsigned + diff = image_signed"
+    # image.singed image.unsigned
+    # part1      !=     part1
+    # part2      ==     part2
+    # part3
+    #
+    # image.signed = image.signed.part1 + image.unsigned.part2 + image.signed.part3
+    image_signed="$2"
+    image_unsigned="$3"
+    image_signed_new=$4
+    image_signed_p1_size=$5
+
+    image_signed_1="/tmp/image_signed_part1"
+    image_signed_3="/tmp/image_signed_part3"
+
+    image_unsigned_1_and_2="/tmp/image_unsigned_1_and_2"
+    image_unsigned_1_and_2_and_3="/tmp/image_unsigned_1_and_2_and_3"
+
+
+    # by local 
+    #cp $image_unsigned $image_unsigned_1_and_2
+    #dd if="$image_signed" of="$image_unsigned_1_and_2" bs=$image_signed_p1_size count=1
+    
+    cp $image_unsigned $image_unsigned_1_and_2
+    dd if="$image_signed" of="$image_signed_1" bs=$image_signed_p1_size count=1
+    dd if="$image_signed_1" of="$image_unsigned_1_and_2" bs=$image_signed_p1_size count=1
+
+    size_image_unsigned_1_and_2=`wc -c < $image_unsigned_1_and_2`
+    dd if="$image_signed" of="$image_signed_3" bs=$size_image_unsigned_1_and_2 skip=1
+    cat $image_unsigned_1_and_2 $image_signed_3 > $image_unsigned_1_and_2_and_3
+    diff $image_signed $image_unsigned_1_and_2_and_3
+    if [ $? -eq 0 ] ; then
+        cp $image_unsigned_1_and_2_and_3 $image_signed_new
+    else
+        echo "ERROR******************"
+        echo "     :create $image_signed_new from $image_signed & $image_unsigned failed!"
+        exit 1;
+    fi
+    
+    #clean
+    rm $image_signed_1 $image_signed_3 $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+    ;;
+162)   echo "given folder1 signed & folder unsigned"
+    echo "MTK, bv303c"
+#BSC_BIN
+
+#VLR_BIN
+
+#VLR_OTHER_BIN
+
+    signed_dir=$2
+    unsigned_dir=$3
+
+    images_bsc_bin=$(get_images_to_sign_BSC_BIN_for_sprd_V4)
+    # 0x304
+    size_image_signed_part1="772"
+    for file in $images_bsc_bin
+    do  
+        image_signed="$signed_dir""/""$file"
+        image_unsigned="$unsigned_dir""/""$file"
+        image_signed_new="$image_unsigned"".new"
+        if [ -f $image_signed ] && [ -f $image_unsigned ] ; then
+            $script 161 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1
+            if [ $? -ne 0 ] ; then
+                exit 1;
+            fi
+        fi
+    done
+    images_vlr_bin=$(get_images_to_sign_VLR_BIN_for_sprd_V4)
+    # 0x600 
+    size_image_signed_part1="1536"
+    for file in $images_vlr_bin
+    do  
+        image_signed="$signed_dir""/""$file"
+        image_unsigned="$unsigned_dir""/""$file"
+        image_signed_new="$image_unsigned"".new"
+        if [ -f $image_signed ] && [ -f $image_unsigned ] ; then
+            $script 159 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1
+            if [ $? -ne 0 ] ; then
+                exit 1;
+            fi
+        fi
+    done
+    images_vlr_bin=$(get_images_to_sign_VLR_OTHER_BIN_for_sprd_V4)
+    # 0x400 
+    size_image_signed_part1="1024"
+    for file in $images_vlr_bin
+    do  
+        image_signed="$signed_dir""/""$file"
+        image_unsigned="$unsigned_dir""/""$file"
+        image_signed_new="$image_unsigned"".new"
+        if [ -f $image_signed ] && [ -f $image_unsigned ] ; then
+            $script 159 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1
+            if [ $? -ne 0 ] ; then
+                exit 1;
+            fi
+        fi
+    done
+
+    ;;
 *) echo "others"
 	;;
 esac
-exit
+exit 0
 
 ##script $1 $2
