@@ -122,6 +122,28 @@ get_images_to_sign_BSC_BIN_for_sprd_V4
 get_images_to_sign_VLR_BIN_for_sprd_V4
 get_images_to_sign_VLR_OTHER_BIN_for_sprd_V4
 }
+function get_images_to_sign_BSC_BIN_sprd()
+{
+    rootdir=$1
+    cat $rootdir"/sprd_secure_boot_tool/sig_bin.ini"|grep 'BSC_BIN='| awk -F'BSC_BIN=' '{print $2}'
+}
+function get_images_to_sign_VLR_BIN_sprd()
+{
+    rootdir=$1
+    cat $rootdir"/sprd_secure_boot_tool/sig_bin.ini"|grep 'VLR_BIN='| awk -F'VLR_BIN=' '{print $2}'
+}
+function get_images_to_sign_VLR_OTHER_BIN_sprd()
+{
+    rootdir=$1
+    cat $rootdir"/sprd_secure_boot_tool/sig_bin.ini"|grep 'VLR_OTHER_BIN='| awk -F'VLR_OTHER_BIN=' '{print $2}'
+}
+function get_signature_filelist_sprd()
+{
+    rootdir=$1
+    get_images_to_sign_BSC_BIN_sprd $rootdir
+    get_images_to_sign_VLR_BIN_sprd $rootdir
+    get_images_to_sign_VLR_OTHER_BIN_sprd $rootdir
+}
 function get_images_to_override()
 {
 get_images_to_sign
@@ -2791,15 +2813,15 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         if [ $? -eq 0 ] ; then
             # special handle to xxx.xxx(1)
             postfix2=`echo $postfix|awk -F '(' '{print $1}'`
-            file_name=`echo $image|awk -F ".$postfix2" '{print $1}'`
+            file_name=`echo $image|awk -F "[.]$postfix2" '{print $1}'`
             signed_file_name="$file_name""-sign"".""$postfix"
             echo "postfix=$postfix"
             echo "postfix2=$postfix2"
-            echo "echo $image|awk -F ".$postfix" '{print $1}'"
+            echo "echo $image|awk -F "[.]$postfix" '{print $1}'"
             echo "file_name=$file_name"
             echo "signed_file_name=$signed_file_name"
         else
-            file_name=`echo $image|awk -F ".$postfix" '{print $1}'`
+            file_name=`echo $image|awk -F "[.]$postfix" '{print $1}'`
             signed_file_name="$file_name""-sign"".""$postfix"
         fi 
         mv $signed_file_name $signed"/"$signed_file_name
@@ -2813,7 +2835,6 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     images=$(get_images_to_override_for_sprd_V4)
     for image in $images
     do
-        #echo cp "$out_target_product_dir""/""$image" $store_path
         ls -l "$out_target_product_dir""/""$image"
         cp "$out_target_product_dir""/""$image" $store_path
     done
@@ -2849,7 +2870,25 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cp $store_path"/signed/override/"* $store_path
     rm -rf $store_path"/signed/"
     ;;
+158) 
+    echo "sign unsigned/ ,overide unsigned/"
+    echo "spreadtrum,sp9832a_3h10_volte"
+    # absolute path
+    store_path=$2
 
+    current_dir=`pwd`
+
+    sprd_secure_boot_tool_path="$current_dir""/sprd_secure_boot_tool/"
+
+    cd "$sprd_secure_boot_tool_path"
+    /bin/bash ./sig_script.sh $store_path
+    #
+    cd $store_path
+    $script 165 $current_dir
+    cd $current_dir
+    cp $store_path"/signed/override/"* $store_path
+    rm -rf $store_path"/signed/"
+    ;;
 159) echo "given image.signed & image.unsigned"
     echo "diff = image.signed - image.unsigned"
     echo "let image.singed.new = image.unsigned + diff = image_signed"
@@ -3010,6 +3049,166 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         fi
     done
 
+    ;;
+163)  echo "given folder1 unsigned & project_name"
+    echo "sign unsigned.zip"
+    echo "get diff between unsigned.zip & signed.zip"
+    echo "create filelist.txt"
+    echo "MTK, bv303b"
+    echo "/mnt/sign_server/sign_bv303b81t_gb.sh"
+    echo "run on /mnt/sign_server"
+    unsigned_zip=$2
+    project=$3
+    current_dir=`pwd`
+    sign_workspace="/tmp/"
+    sign_list="/mnt/svn/MTK/droi_custom_debug/images/signature_filelist.txt"
+
+    zip_folder=`dirname $unsigned_zip`
+    zip_name=`basename $unsigned_zip`
+    postfix=`echo $zip_name|awk -F '.' '{print $NF}'`
+    zip_filename=`echo $zip_name|awk -F "[.]$postfix" '{print $1}'`
+    signed_zip="$sign_workspace""/""$zip_filename""_signed"".""$postfix"
+
+    unsigned_unzip="$sign_workspace""/""$zip_name""_unzip/"
+    if [ ! -d $unsigned_unzip ] ; then
+        mkdir $unsigned_unzip
+    fi
+    unzip $unsigned_zip -d $unsigned_unzip
+    cd /mnt/sign_server/MTK/bv303b81t_gb
+    ./vendor/mediatek/proprietary/scripts/sign-image/sign_image.sh 2>&1 |tee ~/log_server
+    cd $current_dir
+    # override unsigned images with signed ones
+    for file in `dir $unsigned_unzip"/signed_bin"`
+    do
+        filename=`echo $file|awk -F "-sign" '{print $1$2}'`;
+        file_unsigned="$unsigned_unzip""/""$filename"
+        file_signed="$unsigned_unzip""/signed_bin/""$file"
+        echo cp $file_signed $file_unsigned
+        cp $file_signed $file_unsigned
+    done
+    # clean
+    ls -l $unsigned_unzip"/sig/"
+    rm -rf $unsigned_unzip"/sig/"
+    ls -l $unsigned_unzip"/signed_bin/"
+    rm -rf $unsigned_unzip"/signed_bin/"
+    echo rm $unsigned_unzip"/"*"-verified"*
+    ls -l $unsigned_unzip"/"*"-verified"*
+    rm $unsigned_unzip"/"*"-verified"*
+
+    cd $unsigned_unzip
+    zip $signed_zip ./*
+    cd $current_dir
+    ;;
+164) echo "given folder1 unsigned & project_name"
+    echo "sign unsigned.zip"
+    echo "get diff between unsigned.zip & signed.zip"
+    echo "create filelist.txt"
+    echo "SPRD, bv303c"
+    echo "/mnt/sign_server/sign_sp9832a_3h10_volte.sh"
+    echo "run on /mnt/sign_server"
+    unsigned_zip=$2
+    project=$3
+
+    current_dir=`pwd`
+    sign_workspace="/tmp/"
+    
+    zip_folder=`dirname $unsigned_zip`
+    zip_name=`basename $unsigned_zip`
+    postfix=`echo $zip_name|awk -F '.' '{print $NF}'`
+    zip_filename=`echo $zip_name|awk -F "[.]$postfix" '{print $1}'`
+    signed_zip="$sign_workspace""/""$zip_filename""_signed"".""$postfix"
+
+    unsigned_unzip="$sign_workspace""/""$zip_name""_unzip/"
+    if [ ! -d $unsigned_unzip ] ; then
+        mkdir $unsigned_unzip
+    fi
+    unzip $unsigned_zip -d $unsigned_unzip
+    cd /mnt/sign_server/sprd/sp9832a_3h10_volte    
+    $script 158 $unsigned_unzip 2>&1 |tee ~/log_server_"$zip_name"
+
+    cd $unsigned_unzip
+    zip $signed_zip ./*
+    cd $current_dir
+    ;;
+165) echo "spreadtrum,mv signed images to <path>/signed/override"
+    echo "similar with 155"
+    echo "spreadtrum"
+    signed="signed"
+    override=$signed"/override"
+    mkdir $signed
+    mkdir $override
+    rootdir=$2
+    echo "rootdir:$rootdir"
+    images=$(get_signature_filelist_sprd $rootdir)
+    echo "images:$images(end)"
+    for image in $images
+    do
+        postfix=`echo $image|awk -F '.' '{print $NF}'`
+        file_name=`echo $image|awk -F "[.]$postfix" '{print $1}'`
+        signed_file_name="$file_name""-sign"".""$postfix"
+        mv $signed_file_name $signed"/"$signed_file_name
+        cp $signed"/"$signed_file_name "$override""/""$image"
+    done
+    ;;
+166) echo ""
+    a="boot.img"
+    b="\.img"
+    c=".bin"
+    echo "echo $a | sed s/$b/$c/"
+    echo $a | sed s/$b/$c/
+    echo $a
+    ;;
+167)   echo "given folder1 unsigned & project_name"
+    echo "sign unsigned.zip"
+    echo "get diff between unsigned.zip & signed.zip"
+    echo "create filelist.txt"
+    echo "MTK, bv303b"
+    echo "/mnt/sign_server/sign_bv303b81t_gb.sh"
+    echo "similar with 163"
+    echo "run on /mnt/sign_server"
+    unsigned_zip=$2
+    project=$3
+    current_dir=`pwd`
+    sign_workspace="/tmp/"
+    
+    zip_folder=`dirname $unsigned_zip`
+    zip_name=`basename $unsigned_zip`
+    postfix=`echo $zip_name|awk -F '.' '{print $NF}'`
+    zip_filename=`echo $zip_name|awk -F "[.]$postfix" '{print $1}'`
+    signed_zip="$sign_workspace""/""$zip_filename""_signed"".""$postfix"
+
+    unsigned_unzip="$current_dir""/MTK/mtk_release/sign_image_split/out/target/product/""$project"
+    if [ ! -d $unsigned_unzip ] ; then
+        mkdir $unsigned_unzip
+    fi
+    unzip $unsigned_zip -d $unsigned_unzip
+
+    cd /mnt/sign_server/MTK/mtk_release/sign_image_split/sign-image
+    sed -i s/"^MTK_PROJECT_NAME := .*"/"MTK_PROJECT_NAME := $project"/g Android.mk
+    sed -i s/"^MTK_PROJECT_NAME := .*"/"MTK_PROJECT_NAME := $project"/g Android.mk
+    make -f Android.mk 2>&1 |tee ~/log_server
+    cd $current_dir
+    # override unsigned images with signed ones
+    for file in `dir $unsigned_unzip"/signed_bin"`
+    do
+        filename=`echo $file|awk -F "-sign" '{print $1$2}'`;
+        file_unsigned="$unsigned_unzip""/""$filename"
+        file_signed="$unsigned_unzip""/signed_bin/""$file"
+        echo cp $file_signed $file_unsigned
+        cp $file_signed $file_unsigned
+    done
+    # clean
+    ls -l $unsigned_unzip"/sig/"
+    rm -rf $unsigned_unzip"/sig/"
+    ls -l $unsigned_unzip"/signed_bin/"
+    rm -rf $unsigned_unzip"/signed_bin/"
+    echo rm $unsigned_unzip"/"*"-verified"*
+    ls -l $unsigned_unzip"/"*"-verified"*
+    rm $unsigned_unzip"/"*"-verified"*
+
+    cd $unsigned_unzip
+    zip $signed_zip ./*
+    cd $current_dir
     ;;
 *) echo "others"
 	;;
