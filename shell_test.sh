@@ -3027,7 +3027,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         # will create image_signed_1
         dd if="$image_signed" of="$image_signed_1" bs=$image_signed_p1_size count=1
     fi
-    dd if="$image_signed_1" of="$image_unsigned_1_and_2" bs=$image_signed_p1_size count=1
+    dd if="$image_signed_1" of="$image_unsigned_1_and_2" bs=$image_signed_p1_size count=1 conv=notrunc
 
     size_image_unsigned_1_and_2=`wc -c < $image_unsigned_1_and_2`
     if [ "$check" != "true" ] ; then
@@ -3338,7 +3338,6 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     zip $signed_zip ./*
     cd $current_dir
     ;;
-
 *) echo "others"
     echo "1: $2"
     if [ "$2" == "aa" ] ; then
