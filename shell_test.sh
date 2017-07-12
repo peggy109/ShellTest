@@ -3338,6 +3338,56 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     zip $signed_zip ./*
     cd $current_dir
     ;;
+168)
+    cat rawprogram_unsparse.xml|grep system_|awk -F "system_" '{print $2}'|awk -F ' ' '{print $3"\t" $5}'|awk -F '"' '{print $2"_"$4}' > ~/1
+    ;;
+169)
+    r=1
+    rm ~/2
+    for l in `cat ~/1`
+    do
+        let r+=1
+        echo "[$r]line:$l"
+        num=`echo $l |awk -F '_' '{print $1}'`
+        start=`echo $l |awk -F '_' '{print $2}'`
+        let end=$num+$start
+        echo $l"_"$end >> ~/2
+    done
+    ;;
+170)
+    pre_end=0
+    rm ~/3
+    r=1
+    size=0
+    block=0
+    for l in `cat ~/2`
+    do
+        echo "[$r]line:$l"
+        num=`echo $l |awk -F '_' '{print $1}'`
+        start=`echo $l |awk -F '_' '{print $2}'`
+        end=`echo $l |awk -F '_' '{print $3}'`
+        let d=$end-$pre_end
+        pre_end=$end
+        echo $d >> ~/3
+        if [ $r -gt 1 ] ; then
+            size=`wc -c < system_unit`
+            let block=$size/512
+            echo "size $size"
+        fi
+        if [ $r -gt 1 ] ; then
+            echo dd if="/dev/zero" of="system_unit" bs=512 count=$d  seek=$block
+            dd if="/dev/zero" of="system_unit" bs=512 count=$d  seek=$block
+        fi
+        if [ $r -gt 1 ] ; then
+            size=`wc -c < system_unit`
+            let block=$size/512
+            echo "size $size"
+        fi
+        echo dd if="system_""$r"".img" of="system_unit" bs=512 count=$num seek=$block
+        dd if="system_""$r"".img" of="system_unit" bs=512 count=$num seek=$block
+        let r+=1
+    done
+    ;;
 *) echo "others"
     echo "1: $2"
     if [ "$2" == "aa" ] ; then
