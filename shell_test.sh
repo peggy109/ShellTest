@@ -177,13 +177,22 @@ wcnmodem.bin
 SharkLS5ModeMarlinAndroid5.1.xml
 "
 }
+
+function get_images_to_sign_for_MTK()
+{
+    echo "boot.img	logo.bin	   system.img
+cache.img	recovery.img  trustzone.bin
+lk.bin	secro.img	   userdata.img
+"
+}
+
 echo '$@:'"$@"' $#:'"$#"
 #echo '$0:'"$0"' $1:'"$1"
 base_path=`dirname $0`
 script_name=`basename $0`
 script_path=`cd $base_path;pwd`
 script="$script_path""/""$script_name"
-echo "script : ""$script"
+#echo "script : ""$script"
 log_path="$script_path""/""$1"
 #echo "script_path:"$script_path
 #echo "log_path:"$log_path
@@ -2875,7 +2884,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     echo "spreadtrum,sp9832a_3h10_volte"
     # absolute path
     store_path=$2
-
+    diff_folder=$3
     current_dir=`pwd`
 
     sprd_secure_boot_tool_path="$current_dir""/sprd_secure_boot_tool/"
@@ -2886,12 +2895,17 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cd $store_path
     $script 165 $current_dir
     cd $current_dir
+    # make diff
+    $script 162 $store_path"/signed/override/" $store_path $diff_folder
     cp $store_path"/signed/override/"* $store_path
     rm -rf $store_path"/signed/"
     ;;
-159) echo "given image.signed & image.unsigned"
-    echo "diff = image.signed - image.unsigned"
-    echo "let image.singed.new = image.unsigned + diff = image_signed"
+159) 
+#   echo "given image.signed & image.unsigned"
+#   echo "diff = image.signed - image.unsigned"
+#   echo "let image.singed.new = image.unsigned + diff = image_signed"
+#   if check flag "true" is given
+#   check if image signed == image unsigned + image diffed
     # image.singed     image.unsigned
     # part1
     # part2      ==    image.unsigned
@@ -2899,58 +2913,90 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     #
     # image.signed = part1 + image.unsigned + part3
     image_signed="$2"
-    imag_unsigned="$3"
+    image_unsigned="$3"
     image_signed_new=$4
     image_signed_p1_size=$5
 
-    image_signed_1="/tmp/image_signed_part1"
-    image_signed_3="/tmp/image_signed_part3"
+    image_signed_1=$6
+    image_signed_3=$7
+    check=$8
 
-    image_unsigned_1_and_2="/tmp/image_unsigned_part12"
-    image_unsigned_1_and_2_and_3="/tmp/image_unsigned_part123"
+    dat=`date +%Y%m%d_%H%M%S_%N`
+    image_unsigned_filename=`basename $image_unsigned`
+    image_unsigned_1_and_2="/tmp/""$image_unsigned_filename""_part12_""$dat"
+    image_unsigned_1_and_2_and_3="/tmp/""$image_unsigned_filename""_part123_""$dat"
 
-
-    dd if="$image_signed" of="$image_signed_1" bs=$image_signed_p1_size count=1
-    cat $image_signed_1 $imag_unsigned > $image_unsigned_1_and_2
+    if [ "$check" != "true" ] ; then
+        #create $image_signed_1
+        dd if="$image_signed" of="$image_signed_1" bs=$image_signed_p1_size count=1
+    fi
+    cat $image_signed_1 $image_unsigned > $image_unsigned_1_and_2
 
     size_image_unsigned_1_and_2=`wc -c < $image_unsigned_1_and_2`
-#    echo "size=$size_image_unsigned_1_and_2 (end)"
-    dd if="$image_signed" of="$image_signed_3" bs=$size_image_unsigned_1_and_2 skip=1
+    if [ "$check" != "true" ] ; then
+        #create $image_signed_3
+        dd if="$image_signed" of="$image_signed_3" bs=$size_image_unsigned_1_and_2 skip=1
+    fi
     cat $image_unsigned_1_and_2 $image_signed_3 > $image_unsigned_1_and_2_and_3
 
     diff $image_signed $image_unsigned_1_and_2_and_3
     if [ $? -eq 0 ] ; then
         cp $image_unsigned_1_and_2_and_3 $image_signed_new
+        echo "SUCCESS******************"
+        echo "     :create $image_signed_new from $image_signed & $image_unsigned"
     else
-        echo "ERROR******************"
-        echo "     :create $image_signed_new from $image_signed & $imag_unsigned failed!"
+        echo "ERROR********************"
+        echo "     :create $image_signed_new from $image_signed & $image_unsigned failed!"
+        #clean
+        rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
         exit 1;
     fi
     
     #clean
-    rm $image_signed_1 $image_signed_3 $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+    rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
     ;;
-160)  echo "given folder1 signed & folder unsigned"
-    echo "diff = image.signed - image.unsigned"
-    echo "let image.singed.new = image.unsigned + diff = image_signed"
-    echo "MTK, bv303b"
+160)  
+#    echo "given folder1 signed & folder unsigned"
+#    echo "get diff = image.signed - image.unsigned"
+#    echo "let image.singed.new = image.unsigned + diff = image_signed"
+#    echo if check flag "true" is given
+#    echo check if folder signed == folder unsigned + folder diffed
+#    echo "MTK, bv303b"
     signed_dir=$2
     unsigned_dir=$3
-    for file in `dir "$signed_dir"`
+    diff_folder=$4
+    check=$5
+    ls -l $signed_dir
+    files=""
+    if [ "$check" != "true" ] ; then
+        files=`dir "$signed_dir"`
+    else
+        files=$(get_images_to_sign_for_MTK)
+    fi
+    echo "files:$files(end)"
+    for file in $files
     do  
         image_signed="$signed_dir""/""$file"
         image_unsigned="$unsigned_dir""/""$file"
         image_signed_new="$image_unsigned"".new"
+        image_signed_part1="$diff_folder""/""$file"".part1"
+        image_signed_part3="$diff_folder""/""$file"".part3"
         # 0x4040 = 16448
-        $script 159 $image_signed $image_unsigned $image_signed_new 16448
+        size_image_signed_part1=16448
+        $script 159 $image_signed $image_unsigned $image_signed_new $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check
         if [ $? -ne 0 ] ; then
             exit 1;
         fi
     done
+    # clean
+    rm -rf "$unsigned_dir""/"*".new"
     ;;
-161) echo "given image.signed & image.unsigned"
-    echo "diff = image.signed - image.unsigned"
-    echo "let image.singed.new = image.unsigned + diff = image_signed"
+161)
+# echo "given image.signed & image.unsigned"
+#    echo "diff = image.signed - image.unsigned"
+#    echo "let image.singed.new = image.unsigned + diff = image_signed"
+#   if check flag "true" is given
+#   check if image signed == image unsigned + image diffed
     # image.singed image.unsigned
     # part1      !=     part1
     # part2      ==     part2
@@ -2961,47 +3007,63 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     image_unsigned="$3"
     image_signed_new=$4
     image_signed_p1_size=$5
+    # output
+    image_signed_1=$6
+    image_signed_3=$7
 
-    image_signed_1="/tmp/image_signed_part1"
-    image_signed_3="/tmp/image_signed_part3"
+    check=$8
 
-    image_unsigned_1_and_2="/tmp/image_unsigned_1_and_2"
-    image_unsigned_1_and_2_and_3="/tmp/image_unsigned_1_and_2_and_3"
-
+    dat=`date +%Y%m%d_%H%M%S_%N`
+    image_unsigned_filename=`basename $image_unsigned`
+    image_unsigned_1_and_2="/tmp/""$image_unsigned_filename""_part12_""$dat"
+    image_unsigned_1_and_2_and_3="/tmp/""$image_unsigned_filename""_part123_""$dat"
 
     # by local 
     #cp $image_unsigned $image_unsigned_1_and_2
     #dd if="$image_signed" of="$image_unsigned_1_and_2" bs=$image_signed_p1_size count=1
     
     cp $image_unsigned $image_unsigned_1_and_2
-    dd if="$image_signed" of="$image_signed_1" bs=$image_signed_p1_size count=1
+    if [ "$check" != "true" ] ; then
+        # will create image_signed_1
+        dd if="$image_signed" of="$image_signed_1" bs=$image_signed_p1_size count=1
+    fi
     dd if="$image_signed_1" of="$image_unsigned_1_and_2" bs=$image_signed_p1_size count=1
 
     size_image_unsigned_1_and_2=`wc -c < $image_unsigned_1_and_2`
-    dd if="$image_signed" of="$image_signed_3" bs=$size_image_unsigned_1_and_2 skip=1
+    if [ "$check" != "true" ] ; then
+        # will create image_signed_3
+        dd if="$image_signed" of="$image_signed_3" bs=$size_image_unsigned_1_and_2 skip=1
+    fi
     cat $image_unsigned_1_and_2 $image_signed_3 > $image_unsigned_1_and_2_and_3
     diff $image_signed $image_unsigned_1_and_2_and_3
     if [ $? -eq 0 ] ; then
         cp $image_unsigned_1_and_2_and_3 $image_signed_new
+        echo "SUCCESS******************"
+        echo "     :create $image_signed_new from $image_signed & $image_unsigned"
     else
         echo "ERROR******************"
-        echo "     :create $image_signed_new from $image_signed & $image_unsigned failed!"
+        echo "     :create $image_signed_new from $image_signed & $image_unsigned"
+        #clean
+        rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
         exit 1;
     fi
     
     #clean
-    rm $image_signed_1 $image_signed_3 $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+    rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
     ;;
-162)   echo "given folder1 signed & folder unsigned"
-    echo "MTK, bv303c"
+162)
+#   echo "given folder1 signed & folder unsigned"
+#    echo "get folder diffed between folder signed & folder unsigned"
+#    echo "sprd, bv303c"
+#   if check flag "true" is given
+#   check if folder signed == folder unsigned + folder diffed
 #BSC_BIN
-
 #VLR_BIN
-
 #VLR_OTHER_BIN
-
     signed_dir=$2
     unsigned_dir=$3
+    diff_folder=$4
+    check=$5
 
     images_bsc_bin=$(get_images_to_sign_BSC_BIN_for_sprd_V4)
     # 0x304
@@ -3012,7 +3074,9 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         image_unsigned="$unsigned_dir""/""$file"
         image_signed_new="$image_unsigned"".new"
         if [ -f $image_signed ] && [ -f $image_unsigned ] ; then
-            $script 161 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1
+            image_signed_part1="$diff_folder""/""$file"".part1"
+            image_signed_part3="$diff_folder""/""$file"".part3"
+            $script 161 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check
             if [ $? -ne 0 ] ; then
                 exit 1;
             fi
@@ -3027,7 +3091,9 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         image_unsigned="$unsigned_dir""/""$file"
         image_signed_new="$image_unsigned"".new"
         if [ -f $image_signed ] && [ -f $image_unsigned ] ; then
-            $script 159 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1
+            image_signed_part1="$diff_folder""/""$file"".part1"
+            image_signed_part3="$diff_folder""/""$file"".part3"
+            $script 159 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check
             if [ $? -ne 0 ] ; then
                 exit 1;
             fi
@@ -3042,18 +3108,20 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         image_unsigned="$unsigned_dir""/""$file"
         image_signed_new="$image_unsigned"".new"
         if [ -f $image_signed ] && [ -f $image_unsigned ] ; then
-            $script 159 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1
+            image_signed_part1="$diff_folder""/""$file"".part1"
+            image_signed_part3="$diff_folder""/""$file"".part3"
+            $script 159 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check
             if [ $? -ne 0 ] ; then
                 exit 1;
             fi
         fi
     done
 
+    # clean
+    rm -rf $unsigned_dir"/"*".new"
     ;;
-163)  echo "given folder1 unsigned & project_name"
+163)  echo "given unsigned.zip & project_name"
     echo "sign unsigned.zip"
-    echo "get diff between unsigned.zip & signed.zip"
-    echo "create filelist.txt"
     echo "MTK, bv303b"
     echo "/mnt/sign_server/sign_bv303b81t_gb.sh"
     echo "run on /mnt/sign_server"
@@ -3075,7 +3143,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     fi
     unzip $unsigned_zip -d $unsigned_unzip
     cd /mnt/sign_server/MTK/bv303b81t_gb
-    ./vendor/mediatek/proprietary/scripts/sign-image/sign_image.sh 2>&1 |tee ~/log_server
+    ./vendor/mediatek/proprietary/scripts/sign-image/sign_image.sh
     cd $current_dir
     # override unsigned images with signed ones
     for file in `dir $unsigned_unzip"/signed_bin"`
@@ -3117,14 +3185,54 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     postfix=`echo $zip_name|awk -F '.' '{print $NF}'`
     zip_filename=`echo $zip_name|awk -F "[.]$postfix" '{print $1}'`
     signed_zip="$sign_workspace""/""$zip_filename""_signed"".""$postfix"
+    diff_zip="$sign_workspace""/""$zip_filename""_diff"".""$postfix"
+    signed_list_file="$sign_workspace""/""$zip_filename""_signed_list.txt"
 
     unsigned_unzip="$sign_workspace""/""$zip_name""_unzip/"
-    if [ ! -d $unsigned_unzip ] ; then
-        mkdir $unsigned_unzip
+    if [ -d $unsigned_unzip ] ; then
+        rm -rf $unsigned_unzip
     fi
+    mkdir $unsigned_unzip
+    diff_folder="$sign_workspace""/""$zip_name""_diff/"
+    if [ -d $diff_folder ] ; then
+        rm -rf $diff_folder
+    fi
+    mkdir $diff_folder
     unzip $unsigned_zip -d $unsigned_unzip
-    cd /mnt/sign_server/sprd/sp9832a_3h10_volte    
-    $script 158 $unsigned_unzip 2>&1 |tee ~/log_server_"$zip_name"
+    project_path="/mnt/sign_server/sprd/sp9832a_3h10_volte"
+#    $script 158 $unsigned_unzip $diff_folder
+##############################################
+#    echo "sign unsigned/ ,overide unsigned/"
+#    echo "spreadtrum,sp9832a_3h10_volte"
+    # absolute path
+#    cd $project_path    
+    store_path=$unsigned_unzip
+#    diff_folder=$diff_folder
+#    current_dir=`pwd`
+
+    sprd_secure_boot_tool_path="$current_dir""/sprd_secure_boot_tool/"
+    sprd_secure_boot_tool_path="$project_path""/sprd_secure_boot_tool/"
+
+    cd "$sprd_secure_boot_tool_path"
+    /bin/bash ./sig_script.sh $store_path
+    #
+    cd $store_path
+    $script 165 $project_path
+#    cd $project_path
+
+    dir $store_path"/signed/override/" > $signed_list_file
+    # make diff
+    $script 162 $store_path"/signed/override/" $store_path $diff_folder
+    cp $store_path"/signed/override/"* $store_path
+    rm -rf $store_path"/signed/"
+##############################################
+
+    cd $diff_folder
+    zip $diff_zip ./*
+    cd $current_dir
+
+    #clean
+    rm -rf $diff_folder
 
     cd $unsigned_unzip
     zip $signed_zip ./*
@@ -3176,41 +3284,73 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     postfix=`echo $zip_name|awk -F '.' '{print $NF}'`
     zip_filename=`echo $zip_name|awk -F "[.]$postfix" '{print $1}'`
     signed_zip="$sign_workspace""/""$zip_filename""_signed"".""$postfix"
+    diff_zip="$sign_workspace""/""$zip_filename""_diff"".""$postfix"
+    signed_list_file="$sign_workspace""/""$zip_filename""_signed_list.txt"
 
+    rm -rf $signed_list_file
     unsigned_unzip="$current_dir""/MTK/mtk_release/sign_image_split/out/target/product/""$project"
-    if [ ! -d $unsigned_unzip ] ; then
-        mkdir $unsigned_unzip
+    if [ -d $unsigned_unzip ] ; then
+        rm -rf $unsigned_unzip
     fi
+    mkdir $unsigned_unzip
+    diff_folder="$unsigned_unzip""/diff/"
+    if [ -d $diff_folder ] ; then
+        rm -rf $diff_folder
+    fi
+    mkdir $diff_folder
     unzip $unsigned_zip -d $unsigned_unzip
 
+    # sign
     cd /mnt/sign_server/MTK/mtk_release/sign_image_split/sign-image
     sed -i s/"^MTK_PROJECT_NAME := .*"/"MTK_PROJECT_NAME := $project"/g Android.mk
     sed -i s/"^MTK_PROJECT_NAME := .*"/"MTK_PROJECT_NAME := $project"/g Android.mk
-    make -f Android.mk 2>&1 |tee ~/log_server
+    make -f Android.mk
     cd $current_dir
-    # override unsigned images with signed ones
+
+    # handle with signed images
+    # mv xxx-sign.xxx xxx.xxx
     for file in `dir $unsigned_unzip"/signed_bin"`
     do
         filename=`echo $file|awk -F "-sign" '{print $1$2}'`;
         file_unsigned="$unsigned_unzip""/""$filename"
         file_signed="$unsigned_unzip""/signed_bin/""$file"
-        echo cp $file_signed $file_unsigned
-        cp $file_signed $file_unsigned
+        echo $filename >> $signed_list_file
+        mv $file_signed "$unsigned_unzip""/signed_bin/""$filename"
     done
+
+    # make diff
+    $script 160 "$unsigned_unzip""/signed_bin/" $unsigned_unzip $diff_folder
+    
+    cd $diff_folder
+    zip $diff_zip ./*
+    cd $current_dir
+
+    # override unsigned images with signed ones
+    cp "$unsigned_unzip""/signed_bin/"* "$unsigned_unzip""/"
+
     # clean
-    ls -l $unsigned_unzip"/sig/"
     rm -rf $unsigned_unzip"/sig/"
-    ls -l $unsigned_unzip"/signed_bin/"
     rm -rf $unsigned_unzip"/signed_bin/"
-    echo rm $unsigned_unzip"/"*"-verified"*
-    ls -l $unsigned_unzip"/"*"-verified"*
     rm $unsigned_unzip"/"*"-verified"*
+    rm -rf $diff_folder
 
     cd $unsigned_unzip
     zip $signed_zip ./*
     cd $current_dir
     ;;
+
 *) echo "others"
+    echo "1: $2"
+    if [ "$2" == "aa" ] ; then
+        echo "aa:$2"
+    else
+        echo "oo:$2"
+    fi
+    if [ $2 != "bb" ] ; then
+        echo "not bb:$2"
+    else
+        echo "bb:$2"
+    fi
 	;;
 esac
 exit 0
