@@ -3366,7 +3366,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         num=`echo $l |awk -F '_' '{print $1}'`
         start=`echo $l |awk -F '_' '{print $2}'`
         end=`echo $l |awk -F '_' '{print $3}'`
-        let d=$end-$pre_end
+        let d=$start-$pre_end
         pre_end=$end
         echo $d >> ~/3
         if [ $r -gt 1 ] ; then
