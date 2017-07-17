@@ -2901,11 +2901,20 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     rm -rf $store_path"/signed/"
     ;;
 159) 
+# function 1:
 #   echo "given image.signed & image.unsigned"
 #   echo "diff = image.signed - image.unsigned"
-#   echo "let image.singed.new = image.unsigned + diff = image_signed"
+#   echo "let image.singed.new = image.unsigned + diff"
+#   echo "check if image.singed.new == image_signed"
+#   echo "output : diff"
+# function 2:
 #   if check flag "true" is given
 #   check if image signed == image unsigned + image diffed
+# function 3:
+#   echo "given image.diff & image.unsigned"
+#   echo "let image.singed.new = image.unsigned + diff"
+#   echo "check if image.singed.new == image_signed"
+#   echo "output : image.signed.new"
     # image.singed     image.unsigned
     # part1
     # part2      ==    image.unsigned
@@ -2915,61 +2924,175 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     image_signed="$2"
     image_unsigned="$3"
     image_signed_new=$4
-    image_signed_p1_size=$5
 
+    image_signed_p1_size=$5
     image_signed_1=$6
     image_signed_3=$7
+#   check   combine    function
+#   true    true      create image.signed & check
+#   true    false   2   create image.signed & check
+#   false    true   3   create image.signed
+#   false    false  1  create diff & check
+#
+#
+#   true    true    3   create image.signed 
+#   true    false   2   create image.signed & check
+#   true    NULL    2   create image.signed & check
+#   false   true        not defined   
+#   false   false   1   create diff & check
+#   NULL    NULL    1   create diff & check
+#   flag "check" define : create diff or not
+#   flag "combine" define : (check) or not
+#   wont rm image_signed_new
     check=$8
-
+    combine=$9
+    
     dat=`date +%Y%m%d_%H%M%S_%N`
     image_unsigned_filename=`basename $image_unsigned`
     image_unsigned_1_and_2="/tmp/""$image_unsigned_filename""_part12_""$dat"
     image_unsigned_1_and_2_and_3="/tmp/""$image_unsigned_filename""_part123_""$dat"
 
     if [ "$check" != "true" ] ; then
+        #function 1
         #create $image_signed_1
-        dd if="$image_signed" of="$image_signed_1" bs=$image_signed_p1_size count=1
+        dd if="$image_signed" of="$image_signed_1" bs=$image_signed_p1_size skip=0 seek=0 count=1
     fi
-    cat $image_signed_1 $image_unsigned > $image_unsigned_1_and_2
+    if [ "$check" != "true" ] ; then
+        #function 1
+        cat $image_signed_1 $image_unsigned > $image_unsigned_1_and_2
+    else
+        echo /mnt/github/c_test/cp $image_signed_1 $image_unsigned_1_and_2
+        /mnt/github/c_test/cp $image_signed_1 $image_unsigned_1_and_2
+        if [ $? -ne 0 ] ; then
+            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+            exit 1;
+        fi
+        dd_if=$image_unsigned
+        dd_of=$image_unsigned_1_and_2
+        size_if=`wc -c < $dd_if`
+        size_of=`wc -c < $dd_of`
+        echo /mnt/github/c_test/dd $dd_if $dd_of 1 0 $size_of $size_if
+        /mnt/github/c_test/dd $dd_if $dd_of 1 0 $size_of $size_if
+        if [ $? -ne 0 ] ; then
+            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+            exit 1;
+        fi
+    fi
 
     size_image_unsigned_1_and_2=`wc -c < $image_unsigned_1_and_2`
     if [ "$check" != "true" ] ; then
+        #function 1
         #create $image_signed_3
-        dd if="$image_signed" of="$image_signed_3" bs=$size_image_unsigned_1_and_2 skip=1
+        dd if="$image_signed" of="$image_signed_3" bs=$size_image_unsigned_1_and_2 skip=1 seek=0
     fi
-    cat $image_unsigned_1_and_2 $image_signed_3 > $image_unsigned_1_and_2_and_3
-
-    diff $image_signed $image_unsigned_1_and_2_and_3
-    if [ $? -eq 0 ] ; then
-        cp $image_unsigned_1_and_2_and_3 $image_signed_new
-        echo "SUCCESS******************"
-        echo "     :create $image_signed_new from $image_signed & $image_unsigned"
+    if [ "$check" != "true" ] ; then
+        #function 1
+        cat $image_unsigned_1_and_2 $image_signed_3 > $image_unsigned_1_and_2_and_3
     else
-        echo "ERROR********************"
-        echo "     :create $image_signed_new from $image_signed & $image_unsigned failed!"
-        #clean
-        rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
-        exit 1;
+        echo /mnt/github/c_test/cp $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+        /mnt/github/c_test/cp $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+        if [ $? -ne 0 ] ; then
+            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+            exit 1;
+        fi
+        dd_if=$image_signed_3
+        dd_of=$image_unsigned_1_and_2_and_3
+        size_if=`wc -c < $dd_if`
+        size_of=`wc -c < $dd_of`
+        echo /mnt/github/c_test/dd $dd_if $dd_of 1 0 $size_of $size_if
+        /mnt/github/c_test/dd $dd_if $dd_of 1 0 $size_of $size_if
+        if [ $? -ne 0 ] ; then
+            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+            exit 1;
+        fi
     fi
-    
+    if [ "$combine" != "true" ] ; then
+        diff $image_signed $image_unsigned_1_and_2_and_3
+        if [ $? -eq 0 ] ; then
+            cp $image_unsigned_1_and_2_and_3 $image_signed_new
+            echo "SUCCESS******************"
+            echo "     :create $image_signed_new from $image_signed & $image_unsigned"
+        else
+            echo "ERROR********************"
+            echo "     :create $image_signed_new from $image_signed & $image_unsigned failed!"
+            #clean
+            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+            exit 1;
+        fi
+    else
+            cp $image_unsigned_1_and_2_and_3 $image_signed_new
+            echo "COMBINE FINISH******************"
+            echo "     :create $image_signed_new from $image_signed & $image_signed_1 & $image_signed_1"        
+    fi
     #clean
     rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
     ;;
 160)  
-#    echo "given folder1 signed & folder unsigned"
-#    echo "get diff = image.signed - image.unsigned"
-#    echo "let image.singed.new = image.unsigned + diff = image_signed"
-#    echo if check flag "true" is given
-#    echo check if folder signed == folder unsigned + folder diffed
+# function 1:
+#   echo "given folder.signed & folder.unsigned"
+#   echo "folder diff = folder.signed - folder.unsigned"
+#   echo "let folder.singed.new = folder.unsigned + diff"
+#   echo "check if folder.singed.new == folder_signed"
+#   echo input : 
+#       signed_dir : requested (not empty)
+#       unsgined_dir : requested (not empty)
+#       diff_folder : requested (empty)
+#       signed_new_dir : requested (tmp)
+#       check : not requested
+#       combine : not requested
+#   echo "output :folder diff"
+# function 2:
+#   if check flag "true" is given
+#   check if folder signed == folder unsigned + folder diffed
+#   echo input : 
+#       signed_dir : requested (not empty)
+#       unsgined_dir : requested (not empty)
+#       diff_folder : requested (not empty)
+#       signed_new_dir : requested (tmp)
+#       check : requested ("true")
+#       combine : not requested
+#   echo output :
+#       nothing
+# function 3:
+#   echo "given folder.diff & folder.unsigned"
+#   echo "let folder.singed.new = folder.unsigned + diff"
+#   echo "check if folder.singed.new == folder_signed"
+#   echo "output : folder.signed.new"
+#   echo input : 
+#       signed_dir : requested (any string)
+#       unsgined_dir : requested (not empty)
+#       diff_folder : requested (not empty)
+#       signed_new_dir : requested (empty)
+#       check : requested ("true")
+#       combine : requested ("true")
+#   echo output :
+#       signed_new_dir
+#
 #    echo "MTK, bv303b"
+#
+#   check   combine    function
+#   true    true    3   create folder_signed_new 
+#   true    false   2   create folder_signed_new & check & rm folder_signed_new
+#   true    NULL    2   create folder_signed_new & check & rm folder_signed_new
+#   false   true        not defined   
+#   false   false   1   create diff & check & rm folder_signed_new
+#   NULL    NULL    1   create diff & check & rm folder_signed_new
+#   flag "check" define : create diff or not
+#   flag "combine" define : (check & rm folder_signed_new) or not
     signed_dir=$2
     unsigned_dir=$3
     diff_folder=$4
-    check=$5
-    ls -l $signed_dir
+    signed_new_dir=$5
+    check=$6
+    combine=$7
     files=""
+    if [ "$combine" != "true" ] ; then
+        # temporary folder
+        mkdir -p "$signed_new_dir/"
+    fi
     if [ "$check" != "true" ] ; then
         files=`dir "$signed_dir"`
+        files=$(get_images_to_sign_for_MTK)
     else
         files=$(get_images_to_sign_for_MTK)
     fi
@@ -2978,25 +3101,36 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     do  
         image_signed="$signed_dir""/""$file"
         image_unsigned="$unsigned_dir""/""$file"
-        image_signed_new="$image_unsigned"".new"
+        image_signed_new="$signed_new_dir""/""$file"
         image_signed_part1="$diff_folder""/""$file"".part1"
         image_signed_part3="$diff_folder""/""$file"".part3"
         # 0x4040 = 16448
         size_image_signed_part1=16448
-        $script 159 $image_signed $image_unsigned $image_signed_new $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check
+        $script 159 $image_signed $image_unsigned $image_signed_new $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check $combine
         if [ $? -ne 0 ] ; then
             exit 1;
         fi
     done
     # clean
-    rm -rf "$unsigned_dir""/"*".new"
+    if [ "$combine" != "true" ] ; then
+        rm -rf "$signed_new_dir"
+    fi
     ;;
 161)
-# echo "given image.signed & image.unsigned"
-#    echo "diff = image.signed - image.unsigned"
-#    echo "let image.singed.new = image.unsigned + diff = image_signed"
+# function 1:
+#   echo "given image.signed & image.unsigned"
+#   echo "diff = image.signed - image.unsigned"
+#   echo "let image.singed.new = image.unsigned + diff"
+#   echo "check if image.singed.new == image_signed"
+#   echo "output : diff"
+# function 2:
 #   if check flag "true" is given
 #   check if image signed == image unsigned + image diffed
+# function 3:
+#   echo "given image.diff & image.unsigned"
+#   echo "let image.singed.new = image.unsigned + diff"
+#   echo "check if image.singed.new == image_signed"
+#   echo "output : image.signed.new"
     # image.singed image.unsigned
     # part1      !=     part1
     # part2      ==     part2
@@ -3012,6 +3146,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     image_signed_3=$7
 
     check=$8
+    combine=$9
 
     dat=`date +%Y%m%d_%H%M%S_%N`
     image_unsigned_filename=`basename $image_unsigned`
@@ -3022,48 +3157,139 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     #cp $image_unsigned $image_unsigned_1_and_2
     #dd if="$image_signed" of="$image_unsigned_1_and_2" bs=$image_signed_p1_size count=1
     
-    cp $image_unsigned $image_unsigned_1_and_2
     if [ "$check" != "true" ] ; then
+        #function 1
         # will create image_signed_1
         dd if="$image_signed" of="$image_signed_1" bs=$image_signed_p1_size count=1
     fi
-    dd if="$image_signed_1" of="$image_unsigned_1_and_2" bs=$image_signed_p1_size count=1 conv=notrunc
+    cp $image_unsigned $image_unsigned_1_and_2
+    if [ "$check" != "true" ] ; then
+        dd if="$image_signed_1" of="$image_unsigned_1_and_2" bs=$image_signed_p1_size count=1 conv=notrunc
+    else
+        dd_if=$image_signed_1
+        dd_of=$image_unsigned_1_and_2
+        size_if=`wc -c < $dd_if`
+        size_of=`wc -c < $dd_of`
+        echo /mnt/github/c_test/dd "$dd_if" "$dd_of" 1 0 0 $size_if
+        /mnt/github/c_test/dd "$dd_if" "$dd_of" 1 0 0 $size_if
+        if [ $? -ne 0 ] ; then
+            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+            exit 1;
+        fi
+    fi
 
+    # 
     size_image_unsigned_1_and_2=`wc -c < $image_unsigned_1_and_2`
     if [ "$check" != "true" ] ; then
+        #function 1
         # will create image_signed_3
         dd if="$image_signed" of="$image_signed_3" bs=$size_image_unsigned_1_and_2 skip=1
     fi
-    cat $image_unsigned_1_and_2 $image_signed_3 > $image_unsigned_1_and_2_and_3
-    diff $image_signed $image_unsigned_1_and_2_and_3
-    if [ $? -eq 0 ] ; then
-        cp $image_unsigned_1_and_2_and_3 $image_signed_new
-        echo "SUCCESS******************"
-        echo "     :create $image_signed_new from $image_signed & $image_unsigned"
+    if [ "$check" != "true" ] ; then
+        cat $image_unsigned_1_and_2 $image_signed_3 > $image_unsigned_1_and_2_and_3
     else
-        echo "ERROR******************"
-        echo "     :create $image_signed_new from $image_signed & $image_unsigned"
-        #clean
-        rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
-        exit 1;
+        echo /mnt/github/c_test/cp $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+        /mnt/github/c_test/cp $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+        if [ $? -ne 0 ] ; then
+            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+            exit 1;
+        fi
+        dd_if=$image_signed_3
+        dd_of=$image_unsigned_1_and_2_and_3
+        size_if=`wc -c < $dd_if`
+        size_of=`wc -c < $dd_of`
+        echo /mnt/github/c_test/dd $dd_if $dd_of 1 0 $size_of $size_if
+        /mnt/github/c_test/dd $dd_if $dd_of 1 0 $size_of $size_if
+        if [ $? -ne 0 ] ; then
+            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+            exit 1;
+        fi
     fi
-    
+
+    if [ "$combine" != "true" ] ; then
+        diff $image_signed $image_unsigned_1_and_2_and_3
+        if [ $? -eq 0 ] ; then
+            cp $image_unsigned_1_and_2_and_3 $image_signed_new
+            echo "SUCCESS******************"
+            echo "     :create $image_signed_new from $image_signed & $image_unsigned"
+        else
+            echo "ERROR******************"
+            echo "     :create $image_signed_new from $image_signed & $image_unsigned"
+            #clean
+            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
+            exit 1;
+        fi
+    else
+            cp $image_unsigned_1_and_2_and_3 $image_signed_new
+            echo "COMBINE FINISH******************"
+            echo "     :create $image_signed_new from $image_signed & $image_signed_1 & $image_signed_1"        
+    fi
     #clean
     rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
     ;;
 162)
-#   echo "given folder1 signed & folder unsigned"
-#    echo "get folder diffed between folder signed & folder unsigned"
-#    echo "sprd, bv303c"
+# function 1:
+#   echo "given folder.signed & folder.unsigned"
+#   echo "folder diff = folder.signed - folder.unsigned"
+#   echo "let folder.singed.new = folder.unsigned + diff"
+#   echo "check if folder.singed.new == folder_signed"
+#   echo input : 
+#       signed_dir : requested (not empty)
+#       unsgined_dir : requested (not empty)
+#       diff_folder : requested (empty)
+#       signed_new_dir : requested (tmp)
+#       check : not requested
+#       combine : not requested
+#   echo "output :folder diff"
+# function 2:
 #   if check flag "true" is given
 #   check if folder signed == folder unsigned + folder diffed
+#   echo input : 
+#       signed_dir : requested (not empty)
+#       unsgined_dir : requested (not empty)
+#       diff_folder : requested (not empty)
+#       signed_new_dir : requested (tmp)
+#       check : requested ("true")
+#       combine : not requested
+#   echo "output : nothing"
+# function 3:
+#   echo "given folder.diff & folder.unsigned"
+#   echo "let folder.singed.new = folder.unsigned + diff"
+#   echo "check if folder.singed.new == folder_signed"
+#   echo "output : folder.signed.new"
+#   echo input : 
+#       signed_dir : requested (any string)
+#       unsgined_dir : requested (not empty)
+#       diff_folder : requested (not empty)
+#       signed_new_dir : requested (empty)
+#       check : requested ("true")
+#       combine : requested ("true")
+#   echo "output : signed_new_dir"
+#
+#    echo "sprd, bv303c"
+#   check   combine    function
+#   true    true    3   create folder_signed_new 
+#   true    false   2   create folder_signed_new & check & rm folder_signed_new
+#   true    NULL    2   create folder_signed_new & check & rm folder_signed_new
+#   false   true        not defined   
+#   false   false   1   create diff & check & rm folder_signed_new
+#   NULL    NULL    1   create diff & check & rm folder_signed_new
+#   flag "check" define : create diff or not
+#   flag "combine" define : (check & rm folder_signed_new) or not
 #BSC_BIN
 #VLR_BIN
 #VLR_OTHER_BIN
     signed_dir=$2
     unsigned_dir=$3
     diff_folder=$4
-    check=$5
+    signed_new_dir=$5
+    check=$6
+    combine=$7
+
+    if [ "$combine" != "true" ] ; then
+        # temporary folder
+        mkdir -p "$signed_new_dir"
+    fi
 
     images_bsc_bin=$(get_images_to_sign_BSC_BIN_for_sprd_V4)
     # 0x304
@@ -3072,15 +3298,13 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     do  
         image_signed="$signed_dir""/""$file"
         image_unsigned="$unsigned_dir""/""$file"
-        image_signed_new="$image_unsigned"".new"
-        if [ -f $image_signed ] && [ -f $image_unsigned ] ; then
+        image_signed_new="$signed_new_dir""/""$file"
             image_signed_part1="$diff_folder""/""$file"".part1"
             image_signed_part3="$diff_folder""/""$file"".part3"
-            $script 161 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check
+            $script 161 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check $combine
             if [ $? -ne 0 ] ; then
                 exit 1;
             fi
-        fi
     done
     images_vlr_bin=$(get_images_to_sign_VLR_BIN_for_sprd_V4)
     # 0x600 
@@ -3089,15 +3313,13 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     do  
         image_signed="$signed_dir""/""$file"
         image_unsigned="$unsigned_dir""/""$file"
-        image_signed_new="$image_unsigned"".new"
-        if [ -f $image_signed ] && [ -f $image_unsigned ] ; then
+        image_signed_new="$signed_new_dir""/""$file"
             image_signed_part1="$diff_folder""/""$file"".part1"
             image_signed_part3="$diff_folder""/""$file"".part3"
-            $script 159 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check
+            $script 159 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check $combine
             if [ $? -ne 0 ] ; then
                 exit 1;
             fi
-        fi
     done
     images_vlr_bin=$(get_images_to_sign_VLR_OTHER_BIN_for_sprd_V4)
     # 0x400 
@@ -3106,19 +3328,19 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     do  
         image_signed="$signed_dir""/""$file"
         image_unsigned="$unsigned_dir""/""$file"
-        image_signed_new="$image_unsigned"".new"
-        if [ -f $image_signed ] && [ -f $image_unsigned ] ; then
+        image_signed_new="$signed_new_dir""/""$file"
             image_signed_part1="$diff_folder""/""$file"".part1"
             image_signed_part3="$diff_folder""/""$file"".part3"
-            $script 159 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check
+            $script 159 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check $combine
             if [ $? -ne 0 ] ; then
                 exit 1;
             fi
-        fi
     done
 
     # clean
-    rm -rf $unsigned_dir"/"*".new"
+    if [ "$combine" != "true" ] ; then
+        rm -rf "$signed_new_dir"
+    fi
     ;;
 163)  echo "given unsigned.zip & project_name"
     echo "sign unsigned.zip"
@@ -3184,20 +3406,27 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     zip_name=`basename $unsigned_zip`
     postfix=`echo $zip_name|awk -F '.' '{print $NF}'`
     zip_filename=`echo $zip_name|awk -F "[.]$postfix" '{print $1}'`
-    signed_zip="$sign_workspace""/""$zip_filename""_signed"".""$postfix"
-    diff_zip="$sign_workspace""/""$zip_filename""_diff"".""$postfix"
-    signed_list_file="$sign_workspace""/""$zip_filename""_signed_list.txt"
+    
+#    signed_zip="$sign_workspace""/""$zip_filename""_signed"".""$postfix"
+#    diff_zip="$sign_workspace""/""$zip_filename""_diff"".""$postfix"
+#    signed_list_file="$sign_workspace""/""$zip_filename""_signed_list.txt"
+    signed_zip="$4"
+    diff_zip="$5"
+    signed_list_file="$6"
 
+    # clean & mkdir
     unsigned_unzip="$sign_workspace""/""$zip_name""_unzip/"
-    if [ -d $unsigned_unzip ] ; then
-        rm -rf $unsigned_unzip
-    fi
-    mkdir $unsigned_unzip
     diff_folder="$sign_workspace""/""$zip_name""_diff/"
-    if [ -d $diff_folder ] ; then
-        rm -rf $diff_folder
-    fi
-    mkdir $diff_folder
+    signed_new_folder="$sign_workspace""/""$zip_name""_singed_new/"
+    rm -rf $signed_list_file
+    rm -rf $unsigned_unzip
+    rm -rf $diff_folder
+    rm -rf $signed_new_folder
+    mkdir -p $unsigned_unzip
+    mkdir -p $diff_folder
+    mkdir -p $signed_new_folder
+
+    #unzip
     unzip $unsigned_zip -d $unsigned_unzip
     project_path="/mnt/sign_server/sprd/sp9832a_3h10_volte"
 #    $script 158 $unsigned_unzip $diff_folder
@@ -3210,7 +3439,9 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 #    diff_folder=$diff_folder
 #    current_dir=`pwd`
 
-    sprd_secure_boot_tool_path="$current_dir""/sprd_secure_boot_tool/"
+
+    # sign
+#    sprd_secure_boot_tool_path="$current_dir""/sprd_secure_boot_tool/"
     sprd_secure_boot_tool_path="$project_path""/sprd_secure_boot_tool/"
 
     cd "$sprd_secure_boot_tool_path"
@@ -3221,8 +3452,10 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 #    cd $project_path
 
     dir $store_path"/signed/override/" > $signed_list_file
+
     # make diff
-    $script 162 $store_path"/signed/override/" $store_path $diff_folder
+    $script 162 $store_path"/signed/override/" $store_path $diff_folder $signed_new_folder
+
     cp $store_path"/signed/override/"* $store_path
     rm -rf $store_path"/signed/"
 ##############################################
@@ -3233,10 +3466,14 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 
     #clean
     rm -rf $diff_folder
+    rm -rf $signed_new_folder
 
     cd $unsigned_unzip
     zip $signed_zip ./*
     cd $current_dir
+
+    #clean
+    rm -rf $unsigned_unzip
     ;;
 165) echo "spreadtrum,mv signed images to <path>/signed/override"
     echo "similar with 155"
@@ -3283,21 +3520,26 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     zip_name=`basename $unsigned_zip`
     postfix=`echo $zip_name|awk -F '.' '{print $NF}'`
     zip_filename=`echo $zip_name|awk -F "[.]$postfix" '{print $1}'`
-    signed_zip="$sign_workspace""/""$zip_filename""_signed"".""$postfix"
-    diff_zip="$sign_workspace""/""$zip_filename""_diff"".""$postfix"
-    signed_list_file="$sign_workspace""/""$zip_filename""_signed_list.txt"
+    #
+#   signed_zip="$sign_workspace""/""$zip_filename""_signed"".""$postfix"
+#   diff_zip="$sign_workspace""/""$zip_filename""_diff"".""$postfix"
+    signed_zip="$4"
+    diff_zip="$5"
+    signed_list_file="$6"
 
-    rm -rf $signed_list_file
+    # clean & mkdir
     unsigned_unzip="$current_dir""/MTK/mtk_release/sign_image_split/out/target/product/""$project"
-    if [ -d $unsigned_unzip ] ; then
-        rm -rf $unsigned_unzip
-    fi
-    mkdir $unsigned_unzip
     diff_folder="$unsigned_unzip""/diff/"
-    if [ -d $diff_folder ] ; then
-        rm -rf $diff_folder
-    fi
-    mkdir $diff_folder
+    signed_new_folder="$unsigned_unzip""/signed_new/"
+    rm -rf $signed_list_file
+    rm -rf $unsigned_unzip
+    rm -rf $diff_folder
+    rm -rf $signed_new_folder
+    mkdir $unsigned_unzip
+    mkdir -p $diff_folder
+    mkdir -p $signed_new_folder
+
+    # unzip
     unzip $unsigned_zip -d $unsigned_unzip
 
     # sign
@@ -3319,7 +3561,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     done
 
     # make diff
-    $script 160 "$unsigned_unzip""/signed_bin/" $unsigned_unzip $diff_folder
+    $script 160 "$unsigned_unzip""/signed_bin/" $unsigned_unzip $diff_folder $signed_new_folder
     
     cd $diff_folder
     zip $diff_zip ./*
@@ -3333,6 +3575,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     rm -rf $unsigned_unzip"/signed_bin/"
     rm $unsigned_unzip"/"*"-verified"*
     rm -rf $diff_folder
+    rm -rf $signed_new_folder
 
     cd $unsigned_unzip
     zip $signed_zip ./*
@@ -3387,6 +3630,42 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         dd if="system_""$r"".img" of="system_unit" bs=512 count=$num seek=$block
         let r+=1
     done
+    ;;
+171)
+# combine 
+#    echo "MTK, bv303b"
+# call 160
+    unsigned_dir=$2
+    diff_folder=$3
+    signed_dir=$4
+    signed_images_dir=$signed_dir"_tmp"
+    rm -rf $signed_dir
+    rm -rf $signed_images_dir
+    mkdir -p $signed_dir
+    mkdir -p $signed_images_dir
+    $script 160 "nothing_signed" $unsigned_dir $diff_folder $signed_images_dir true true
+    cp $unsigned_dir"/"* $signed_dir
+    cp $signed_images_dir"/"* $signed_dir
+    #clean
+    rm -rf $signed_images_dir
+    ;;
+172) 
+# combine 
+#    echo "SPRD, bv303c"
+# call 162
+    unsigned_dir=$2
+    diff_folder=$3
+    signed_dir=$4
+    signed_images_dir=$signed_dir"_tmp"
+    rm -rf $signed_dir
+    rm -rf $signed_images_dir
+    mkdir -p $signed_dir
+    mkdir -p $signed_images_dir
+    $script 162 "nothing_signed" $unsigned_dir $diff_folder $signed_images_dir true true
+    cp $unsigned_dir"/"* $signed_dir
+    cp $signed_images_dir"/"* $signed_dir
+    #clean
+    rm -rf $signed_images_dir
     ;;
 *) echo "others"
     echo "1: $2"
