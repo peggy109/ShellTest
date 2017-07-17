@@ -3455,6 +3455,9 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 
     # make diff
     $script 162 $store_path"/signed/override/" $store_path $diff_folder $signed_new_folder
+    if [ $? -ne 0 ] ; then
+        exit 1;
+    fi
 
     cp $store_path"/signed/override/"* $store_path
     rm -rf $store_path"/signed/"
@@ -3562,6 +3565,9 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 
     # make diff
     $script 160 "$unsigned_unzip""/signed_bin/" $unsigned_unzip $diff_folder $signed_new_folder
+    if [ $? -ne 0 ] ; then
+        exit 1;
+    fi
     
     cd $diff_folder
     zip $diff_zip ./*
