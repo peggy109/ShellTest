@@ -3027,7 +3027,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     #clean
     rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
     ;;
-160)  
+160)
 # function 1:
 #   echo "given folder.signed & folder.unsigned"
 #   echo "folder diff = folder.signed - folder.unsigned"
@@ -3108,6 +3108,10 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         size_image_signed_part1=16448
         $script 159 $image_signed $image_unsigned $image_signed_new $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check $combine
         if [ $? -ne 0 ] ; then
+            # clean
+            if [ "$combine" != "true" ] ; then
+                rm -rf "$signed_new_dir"
+            fi
             exit 1;
         fi
     done
@@ -3303,6 +3307,10 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
             image_signed_part3="$diff_folder""/""$file"".part3"
             $script 161 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check $combine
             if [ $? -ne 0 ] ; then
+                # clean
+                if [ "$combine" != "true" ] ; then
+                    rm -rf "$signed_new_dir"
+                fi
                 exit 1;
             fi
     done
@@ -3318,6 +3326,10 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
             image_signed_part3="$diff_folder""/""$file"".part3"
             $script 159 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check $combine
             if [ $? -ne 0 ] ; then
+                # clean
+                if [ "$combine" != "true" ] ; then
+                    rm -rf "$signed_new_dir"
+                fi
                 exit 1;
             fi
     done
@@ -3333,6 +3345,10 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
             image_signed_part3="$diff_folder""/""$file"".part3"
             $script 159 $image_signed $image_unsigned $image_signed_new  $size_image_signed_part1 $image_signed_part1 $image_signed_part3 $check $combine
             if [ $? -ne 0 ] ; then
+                # clean
+                if [ "$combine" != "true" ] ; then
+                    rm -rf "$signed_new_dir"
+                fi
                 exit 1;
             fi
     done
@@ -3401,12 +3417,12 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 
     current_dir=`pwd`
     sign_workspace="/tmp/"
-    
+
     zip_folder=`dirname $unsigned_zip`
     zip_name=`basename $unsigned_zip`
     postfix=`echo $zip_name|awk -F '.' '{print $NF}'`
     zip_filename=`echo $zip_name|awk -F "[.]$postfix" '{print $1}'`
-    
+
 #    signed_zip="$sign_workspace""/""$zip_filename""_signed"".""$postfix"
 #    diff_zip="$sign_workspace""/""$zip_filename""_diff"".""$postfix"
 #    signed_list_file="$sign_workspace""/""$zip_filename""_signed_list.txt"
@@ -3456,6 +3472,10 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     # make diff
     $script 162 $store_path"/signed/override/" $store_path $diff_folder $signed_new_folder
     if [ $? -ne 0 ] ; then
+        #clean
+        rm -rf $diff_folder
+        rm -rf $signed_new_folder
+        rm -rf $unsigned_unzip
         exit 1;
     fi
 
@@ -3566,6 +3586,9 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     # make diff
     $script 160 "$unsigned_unzip""/signed_bin/" $unsigned_unzip $diff_folder $signed_new_folder
     if [ $? -ne 0 ] ; then
+        rm -rf $unsigned_unzip
+        rm -rf $diff_folder
+        rm -rf $signed_new_folder
         exit 1;
     fi
     
@@ -3586,6 +3609,9 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cd $unsigned_unzip
     zip $signed_zip ./*
     cd $current_dir
+
+    # clean
+    rm -rf $unsigned_unzip
     ;;
 168)
     cat rawprogram_unsparse.xml|grep system_|awk -F "system_" '{print $2}'|awk -F ' ' '{print $3"\t" $5}'|awk -F '"' '{print $2"_"$4}' > ~/1
