@@ -5,6 +5,23 @@ function usage()
 {
 	echo "script $1 [$2]"
 }
+function get_prop_from_config()
+{
+    config=$1
+    key=$2
+    for l in `cat $config`
+    do
+#        echo "l:$l (end)"
+        l_key=`echo $l|awk -F '=' '{print $1}'`
+        l_value=`echo $l|awk -F '=' '{print $2}'`
+#        echo "key:$l_key:value$l_value"
+        if [ "$key" == "$l_key" ] ; then
+            echo $l_value
+            return 0;
+        fi
+    done
+    return 1;
+}
 function fDiffTime()
 {
 	echo "$1 , $2" ;
@@ -3698,6 +3715,22 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cp $signed_images_dir"/"* $signed_dir
     #clean
     rm -rf $signed_images_dir
+    ;;
+173) echo ""
+    config=$2
+    for l in `cat $config`
+    do
+        echo "l:$l (end)"
+        key=`echo $l|awk -F '=' '{print $1}'`
+        value=`echo $l|awk -F '=' '{print $2}'`
+        echo "key:$key:value$value"
+    done
+    animal=$(get_prop_from_config config "animal")
+    fruit=$(get_prop_from_config config "fruit")
+    color=$(get_prop_from_config config "color")
+    echo "animal$animal"
+    echo "fruit$fruit"
+    echo "color$color"
     ;;
 *) echo "others"
     echo "1: $2"
