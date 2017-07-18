@@ -3444,7 +3444,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 
     #unzip
     unzip $unsigned_zip -d $unsigned_unzip
-    project_path="/mnt/sign_server/sprd/sp9832a_3h10_volte"
+    project_path=$current_dir"/sprd/sp9832a_3h10_volte"
 #    $script 158 $unsigned_unzip $diff_folder
 ##############################################
 #    echo "sign unsigned/ ,overide unsigned/"
@@ -3566,7 +3566,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     unzip $unsigned_zip -d $unsigned_unzip
 
     # sign
-    cd /mnt/sign_server/MTK/mtk_release/sign_image_split/sign-image
+    cd $current_dir"/MTK/mtk_release/sign_image_split/sign-image"
     sed -i s/"^MTK_PROJECT_NAME := .*"/"MTK_PROJECT_NAME := $project"/g Android.mk
     sed -i s/"^MTK_PROJECT_NAME := .*"/"MTK_PROJECT_NAME := $project"/g Android.mk
     make -f Android.mk
