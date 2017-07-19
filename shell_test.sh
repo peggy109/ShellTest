@@ -3446,12 +3446,14 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     signed_zip="$4"
     diff_zip="$5"
     signed_list_file="$6"
+    signed_md5_file="$7"
 
     # clean & mkdir
     unsigned_unzip="$sign_workspace""/""$zip_name""_unzip/"
     diff_folder="$sign_workspace""/""$zip_name""_diff/"
     signed_new_folder="$sign_workspace""/""$zip_name""_singed_new/"
     rm -rf $signed_list_file
+    rm -rf $signed_md5_file
     rm -rf $unsigned_unzip
     rm -rf $diff_folder
     rm -rf $signed_new_folder
@@ -3509,6 +3511,11 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     rm -rf $signed_new_folder
 
     cd $unsigned_unzip
+    for f in `ls`
+    do
+        md5=`md5sum $f |awk '{print $1}'` 
+        echo "$md5""   ""$f" >> $signed_md5_file
+    done
     zip $signed_zip ./*
     cd $current_dir
 
@@ -3566,7 +3573,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     signed_zip="$4"
     diff_zip="$5"
     signed_list_file="$6"
-
+    signed_md5_file="$7"
     # clean & mkdir
     unsigned_unzip="$current_dir""/MTK/mtk_release/sign_image_split/out/target/product/""$project"
     diff_folder="$unsigned_unzip""/diff/"
@@ -3581,9 +3588,11 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 
     # unzip
     unzip $unsigned_zip -d $unsigned_unzip
-
+    ls -l $unsigned_unzip
     # sign
     cd $current_dir"/MTK/mtk_release/sign_image_split/sign-image"
+    echo "cd MTK/mtk_release/sign_image_split/sign-image"
+    pwd
     sed -i s/"^MTK_PROJECT_NAME := .*"/"MTK_PROJECT_NAME := $project"/g Android.mk
     sed -i s/"^MTK_PROJECT_NAME := .*"/"MTK_PROJECT_NAME := $project"/g Android.mk
     make -f Android.mk
@@ -3624,6 +3633,11 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     rm -rf $signed_new_folder
 
     cd $unsigned_unzip
+    for f in `ls`
+    do
+        md5=`md5sum $f |awk '{print $1}'` 
+        echo "$md5""   ""$f" >> $signed_md5_file
+    done
     zip $signed_zip ./*
     cd $current_dir
 
@@ -3684,6 +3698,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 # combine 
 #    echo "MTK, bv303b"
 # call 160
+# combine_bv303b_folder
     unsigned_dir=$2
     diff_folder=$3
     signed_dir=$4
@@ -3693,6 +3708,11 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     mkdir -p $signed_dir
     mkdir -p $signed_images_dir
     $script 160 "nothing_signed" $unsigned_dir $diff_folder $signed_images_dir true true
+    if [ $? -ne 0 ] ; then
+        #clean
+        rm -rf $signed_images_dir
+        exit 1
+    fi
     cp $unsigned_dir"/"* $signed_dir
     cp $signed_images_dir"/"* $signed_dir
     #clean
@@ -3702,6 +3722,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 # combine 
 #    echo "SPRD, bv303c"
 # call 162
+# combine_bv303c_folder
     unsigned_dir=$2
     diff_folder=$3
     signed_dir=$4
@@ -3711,12 +3732,17 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     mkdir -p $signed_dir
     mkdir -p $signed_images_dir
     $script 162 "nothing_signed" $unsigned_dir $diff_folder $signed_images_dir true true
+    if [ $? -ne 0 ] ; then
+        #clean
+        rm -rf $signed_images_dir
+        exit 1
+    fi
     cp $unsigned_dir"/"* $signed_dir
     cp $signed_images_dir"/"* $signed_dir
     #clean
     rm -rf $signed_images_dir
     ;;
-173) echo ""
+173) echo "get variable from config file"
     config=$2
     for l in `cat $config`
     do
@@ -3731,6 +3757,109 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     echo "animal$animal"
     echo "fruit$fruit"
     echo "color$color"
+    ;;
+174)
+# combine 
+#    echo "MTK, bv303b"
+# call 171
+# combine_bv303b
+# absolute path is required
+    unsigned_zip=$2
+    diff_zip=$3
+    signed_zip=$4
+    current_dir=`pwd`
+    unsigned_dir=`echo $unsigned_zip|awk -F '.zip' '{print $1}'`
+    diff_folder=`echo $diff_zip|awk -F '.zip' '{print $1}'`
+    signed_dir=`echo $signed_zip|awk -F '.zip' '{print $1}'`
+    TMP_PATH=$(get_prop_from_config /mnt/sign_server_father/sign_server/config "TMP_PATH");
+    unsigned_dir="$TMP_PATH""/"`basename $unsigned_zip|awk -F '.zip' '{print $1}'`
+    diff_folder="$TMP_PATH""/"`basename $diff_zip|awk -F '.zip' '{print $1}'`
+    signed_dir="$TMP_PATH""/"`basename $signed_zip|awk -F '.zip' '{print $1}'`
+    echo "unsigned_zip : $unsigned_zip"
+    echo "unsigned_dir : $unsigned_dir"
+    echo "diff_zip : $diff_zip"
+    echo "diff_folder : $diff_folder"
+    echo "signed_zip : $signed_zip"
+    echo "signed_dir : $signed_dir"
+    mkdir -p $unsigned_dir
+    mkdir -p $diff_folder
+    mkdir -p $signed_dir
+
+    unzip $unsigned_zip -d $unsigned_dir
+    unzip $diff_zip -d $diff_folder
+    unzip $signed_zip -d $signed_dir
+
+    $script 171 $unsigned_dir $diff_folder $signed_dir
+    if [ $? -ne 0 ] ; then
+        #clean
+        rm -rf $unsigned_dir
+        rm -rf $diff_folder
+        rm -rf $signed_dir
+        echo "ERROR*****************"
+        echo "      : combine $unsigned_zip & $diff_zip failed"
+        exit 1
+    fi
+    cd $signed_dir
+    zip $signed_zip ./* 
+    cd $current_dir
+    #clean
+    rm -rf $unsigned_dir
+    rm -rf $diff_folder
+    rm -rf $signed_dir
+    echo "COMBINE OK*****************"
+    echo "      : combine $unsigned_zip & $diff_zip OK"
+    ;;
+175)
+# combine 
+#    echo "SPRD, bv303c"
+# call 172
+# combine_bv303c_folder
+    unsigned_zip=$2
+    diff_zip=$3
+    signed_zip=$4
+    current_dir=`pwd`
+    unsigned_dir=`echo $unsigned_zip|awk -F '.zip' '{print $1}'`
+    diff_folder=`echo $diff_zip|awk -F '.zip' '{print $1}'`
+    signed_dir=`echo $signed_zip|awk -F '.zip' '{print $1}'`
+    TMP_PATH=$(get_prop_from_config /mnt/sign_server_father/sign_server/config "TMP_PATH");
+    unsigned_dir="$TMP_PATH""/"`basename $unsigned_zip|awk -F '.zip' '{print $1}'`
+    diff_folder="$TMP_PATH""/"`basename $diff_zip|awk -F '.zip' '{print $1}'`
+    signed_dir="$TMP_PATH""/"`basename $signed_zip|awk -F '.zip' '{print $1}'`
+    echo "unsigned_zip : $unsigned_zip"
+    echo "unsigned_dir : $unsigned_dir"
+    echo "diff_zip : $diff_zip"
+    echo "diff_folder : $diff_folder"
+    echo "signed_zip : $signed_zip"
+    echo "signed_dir : $signed_dir"
+
+    mkdir -p $unsigned_dir
+    mkdir -p $diff_folder
+    mkdir -p $signed_dir
+
+    unzip $unsigned_zip -d $unsigned_dir
+    unzip $diff_zip -d $diff_folder
+    unzip $signed_zip -d $signed_dir
+
+    $script 172 $unsigned_dir $diff_folder $signed_dir
+    if [ $? -ne 0 ] ; then
+        #clean
+        rm -rf $unsigned_dir
+        rm -rf $diff_folder
+        rm -rf $signed_dir
+        echo "ERROR*****************"
+        echo "      : combine $unsigned_zip & $diff_zip failed"
+        exit 1
+    fi
+    cd $signed_dir
+    zip $signed_zip ./* 
+    cd $current_dir
+    #clean
+    rm -rf $unsigned_dir
+    rm -rf $diff_folder
+    rm -rf $signed_dir
+
+    echo "COMBINE OK*****************"
+    echo "      : combine $unsigned_zip & $diff_zip OK"
     ;;
 *) echo "others"
     echo "1: $2"

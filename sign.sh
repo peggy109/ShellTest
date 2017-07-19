@@ -46,6 +46,7 @@ diff_zip=$4
 signed_folder=`dirname $signed_zip`
 diff_folder=`dirname $diff_zip`
 signed_list_file="$signed_folder""/""$zip_filename""_signed_list.txt"
+signed_md5_file="$signed_folder""/""$zip_filename""_signed_md5.txt"
 
 
 # clean & mkdir
@@ -70,19 +71,20 @@ if [ ! -d $LOG_PATH ] ; then
 fi
 LOG_PATH="$LOG_PATH""/""$project""_""$zip_name""_""$dat"".log"
 echo "LOG_PATH="$LOG_PATH
-$tool $unsigned_zip $project $signed_zip $diff_zip $signed_list_file  2>&1 | tee $LOG_PATH
+$tool $unsigned_zip $project $signed_zip $diff_zip $signed_list_file $signed_md5_file 2>&1 | tee $LOG_PATH
+$?
 if [ $? -ne 0 ] ; then
-    echo "***************************************" 2>&1 | tee  -a $LOG_PATH
+    echo "************errnumber = $?*************" 2>&1 | tee  -a $LOG_PATH
     echo "*********************SIGN ERROR********" 2>&1 | tee  -a $LOG_PATH
     echo "Sign $project ($unsigned_zip) FAILED" 2>&1 | tee  -a $LOG_PATH
     echo "log is stored in $LOG_PATH" 2>&1 | tee  -a $LOG_PATH
     echo "***************************************" 2>&1 | tee  -a $LOG_PATH
     exit 1;
 else
-    echo "***************************************" 2>&1 | tee  -a $LOG_PATH
+    echo "************errnumber = $?*************" 2>&1 | tee  -a $LOG_PATH
     echo "*********************SIGN OK***********" 2>&1 | tee  -a $LOG_PATH
     echo "Sign $project ($unsigned_zip) OK" 2>&1 | tee  -a $LOG_PATH
     echo "***************************************" 2>&1 | tee  -a $LOG_PATH
-    exit 1;
 fi
 
+exit 0;
