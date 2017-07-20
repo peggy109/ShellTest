@@ -3513,8 +3513,9 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cd $unsigned_unzip
     for f in `ls`
     do
+        md5sum $f
         md5=`md5sum $f |awk '{print $1}'` 
-        echo "$md5""   ""$f" >> $signed_md5_file
+        echo "$md5""   ""$f" |tee -a $signed_md5_file
     done
     zip $signed_zip ./*
     cd $current_dir
@@ -3579,6 +3580,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     diff_folder="$unsigned_unzip""/diff/"
     signed_new_folder="$unsigned_unzip""/signed_new/"
     rm -rf $signed_list_file
+    rm -rf $signed_md5_file
     rm -rf $unsigned_unzip
     rm -rf $diff_folder
     rm -rf $signed_new_folder
@@ -3635,8 +3637,10 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cd $unsigned_unzip
     for f in `ls`
     do
+        md5sum $f
         md5=`md5sum $f |awk '{print $1}'` 
-        echo "$md5""   ""$f" >> $signed_md5_file
+        
+        echo "$md5""   ""$f" |tee -a $signed_md5_file
     done
     zip $signed_zip ./*
     cd $current_dir
@@ -3860,6 +3864,22 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 
     echo "COMBINE OK*****************"
     echo "      : combine $unsigned_zip & $diff_zip OK"
+    ;;
+176) echo ""
+    exit $2 ;
+    ;;
+177)echo ""
+    $script 176 $2 2>&1 > ~/1
+    echo "?:$?"
+    ;;
+178) echo ""
+    $script 176 $2
+    err=$?
+    if [ $err -ne 0 ] ; then
+        echo "ne: $? err: $err"
+    else
+        echo "e : $? err: $err"
+    fi    
     ;;
 *) echo "others"
     echo "1: $2"
