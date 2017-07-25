@@ -3613,7 +3613,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     signed_list_file="$6"
     signed_md5_file="$7"
     # clean & mkdir
-    unsigned_unzip="$current_dir""/MTK/mtk_release/sign_image_split/out/target/product/""$project"
+    unsigned_unzip="$current_dir""/MTK/mtk_release_$project/sign_image_split/out/target/product/""$project"
     diff_folder="$unsigned_unzip""/diff/"
     signed_new_folder="$unsigned_unzip""/signed_new/"
     rm -rf $signed_list_file
@@ -3629,8 +3629,8 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     unzip $unsigned_zip -d $unsigned_unzip
     ls -l $unsigned_unzip
     # sign
-    cd $current_dir"/MTK/mtk_release/sign_image_split/sign-image"
-    echo "cd MTK/mtk_release/sign_image_split/sign-image"
+    cd $current_dir"/MTK/mtk_release_$project/sign_image_split/sign-image"
+    echo "cd MTK/mtk_release_$project/sign_image_split/sign-image"
     pwd
     sed -i s/"^MTK_PROJECT_NAME := .*"/"MTK_PROJECT_NAME := $project"/g Android.mk
     sed -i s/"^MTK_PROJECT := .*"/"MTK_PROJECT := $project"/g Android.mk
@@ -3683,7 +3683,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cd $current_dir
 
     # clean
-    rm -rf $unsigned_unzip
+#    rm -rf $unsigned_unzip
     ;;
 168)
     cat rawprogram_unsparse.xml|grep system_|awk -F "system_" '{print $2}'|awk -F ' ' '{print $3"\t" $5}'|awk -F '"' '{print $2"_"$4}' > ~/1
@@ -3943,7 +3943,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     signed_list_file="$6"
     signed_md5_file="$7"
     # clean & mkdir
-    unsigned_unzip="$current_dir""/MTK/mtk_release/sign_image_split/out/target/product/""$project"
+    unsigned_unzip="$current_dir""/MTK/mtk_release_$project/sign_image_split/out/target/product/""$project"
     diff_folder="$unsigned_unzip""/diff/"
     signed_new_folder="$unsigned_unzip""/signed_new/"
     signed_bin_folder="$unsigned_unzip""/signed_bin"
@@ -3963,16 +3963,15 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     unzip $unsigned_zip -d $unsigned_unzip
     ls -l $unsigned_unzip
     # sign
-    cd $current_dir"/MTK/mtk_release/sign_image_split/sign-image"
-    echo "cd MTK/mtk_release/sign_image_split/sign-image"
+    cd $current_dir"/MTK/mtk_release_$project/sign_image_split/sign-image"
+    echo "cd MTK/mtk_release_$project/sign_image_split/sign-image"
     pwd
     sed -i s/"^MTK_PROJECT_NAME := .*"/"MTK_PROJECT_NAME := $project"/g Android.mk
     sed -i s/"^MTK_PROJECT := .*"/"MTK_PROJECT := $project"/g Android.mk
     make -f Android.mk
     cd $current_dir
 
-    cd $current_dir"/MTK/mtk_release/PreloaderResign/"
-    echo ./build.sh $unsigned_unzip"/preloader_""$project"".bin" $signed_bin_folder
+    cd $current_dir"/MTK/mtk_release_$project/PreloaderResign/"
     ./build.sh $unsigned_unzip"/preloader_""$project"".bin" $signed_bin_folder
     cd $current_dir
 
