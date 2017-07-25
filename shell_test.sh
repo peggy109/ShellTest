@@ -3458,7 +3458,14 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     mkdir -p $signed_new_folder
 
     #unzip
-    unzip $unsigned_zip -d $unsigned_unzip
+    echo x | unzip -j $unsigned_zip -d $unsigned_unzip
+    if [ $? -ne 0 ] ; then
+        echo "ERROR***************************"
+        echo "unzip $unsigned_zip,"
+        echo "it is not allowed to have subdirs more than 1 on $unsigned_zip"
+        exit 1;
+    fi
+
     project_path=$current_dir"/sprd/sp9832a_3h10_volte"
 #    $script 158 $unsigned_unzip $diff_folder
 ##############################################
@@ -3585,7 +3592,13 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     mkdir -p $signed_new_folder
 
     # unzip
-    unzip $unsigned_zip -d $unsigned_unzip
+    echo x | unzip -j $unsigned_zip -d $unsigned_unzip
+    if [ $? -ne 0 ] ; then
+        echo "ERROR***************************"
+        echo "unzip $unsigned_zip,"
+        echo "it is not allowed to have subdirs more than 1 on $unsigned_zip"
+        exit 1;
+    fi
     ls -l $unsigned_unzip
     # sign
     cd $current_dir"/MTK/mtk_release_$project/sign_image_split/sign-image"
@@ -3919,7 +3932,13 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     mkdir -p $verity_folder
 
     # unzip
-    unzip $unsigned_zip -d $unsigned_unzip
+    echo x | unzip -j $unsigned_zip -d $unsigned_unzip
+    if [ $? -ne 0 ] ; then
+        echo "ERROR***************************"
+        echo "unzip $unsigned_zip,"
+        echo "it is not allowed to have subdirs more than 1 on $unsigned_zip"
+        exit 1;
+    fi
     ls -l $unsigned_unzip
     # sign
     cd $current_dir"/MTK/mtk_release_$project/sign_image_split/sign-image"
