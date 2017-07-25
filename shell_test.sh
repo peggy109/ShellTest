@@ -3947,14 +3947,12 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     diff_folder="$unsigned_unzip""/diff/"
     signed_new_folder="$unsigned_unzip""/signed_new/"
     signed_bin_folder="$unsigned_unzip""/signed_bin"
-    signed_bin_tmp_folder="$unsigned_unzip""/signed_bin_tmp"
     verity_folder="$unsigned_unzip""/verity"
     rm -rf $signed_list_file
     rm -rf $signed_md5_file
     rm -rf $unsigned_unzip
     rm -rf $diff_folder
     rm -rf $signed_new_folder
-    rm -rf $signed_bin_tmp_folder
     rm -rf $verity_folder
     mkdir $unsigned_unzip
     mkdir -p $diff_folder
@@ -3978,22 +3976,20 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     ./build.sh $unsigned_unzip"/preloader_""$project"".bin" $signed_bin_folder
     cd $current_dir
 
-    # store signed_bin/
-    cp -r $signed_bin_folder $signed_bin_tmp_folder 
 
     # handle with signed images
     # mv xxx-sign.xxx xxx.xxx
-    for file in `dir $signed_bin_tmp_folder`
+    for file in `dir $signed_bin_folder`
     do
         filename=`echo $file|awk -F "-sign" '{print $1$2}'`;
         file_unsigned="$unsigned_unzip""/""$filename"
-        file_signed="$signed_bin_tmp_folder""/""$file"
+        file_signed="$signed_bin_folder""/""$file"
         echo $filename >> $signed_list_file
-        mv $file_signed "$signed_bin_tmp_folder""/""$filename"
+        mv $file_signed "$signed_bin_folder""/""$filename"
     done
 
     # make diff
-    $script 160 "$signed_bin_tmp_folder" $unsigned_unzip $diff_folder $signed_new_folder
+    $script 160 "$signed_bin_folder" $unsigned_unzip $diff_folder $signed_new_folder
     if [ $? -ne 0 ] ; then
 #        rm -rf $unsigned_unzip
 #        rm -rf $diff_folder
@@ -4006,18 +4002,16 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cd $current_dir
 
     # override unsigned images with signed ones
-#    cp "$signed_bin_tmp_folder""/"* "$unsigned_unzip""/"
+    cp "$signed_bin_folder""/"* "$unsigned_unzip""/"
 
-    cp $unsigned_unzip"/"*"-verified"* $verity_folder"/"
+    mv $unsigned_unzip"/"*"-verified"* $verity_folder"/"
 
     # clean
 #    rm -rf $unsigned_unzip"/sig/"
-#    rm -rf $signed_bin_tmp_folder
-#    rm $unsigned_unzip"/"*"-verified"*
-#    rm -rf $diff_folder
-#    rm -rf $signed_new_folder
+    rm -rf $diff_folder
+    rm -rf $signed_new_folder
 
-#    cd $unsigned_unzip
+    cp $unsigned_unzip"/"* $signed_bin_folder
     cd $signed_bin_folder
     for f in `ls`
     do
