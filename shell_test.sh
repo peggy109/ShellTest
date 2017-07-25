@@ -2974,56 +2974,30 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     if [ "$check" != "true" ] ; then
         #function 1
         #create $image_signed_1
+        echo dd if="$image_signed" of="$image_signed_1" bs=$image_signed_p1_size skip=0 seek=0 count=1
         dd if="$image_signed" of="$image_signed_1" bs=$image_signed_p1_size skip=0 seek=0 count=1
+        echo 'after dd $?='$?
     fi
     if [ "$check" != "true" ] ; then
         #function 1
         cat $image_signed_1 $image_unsigned > $image_unsigned_1_and_2
     else
-        echo /mnt/github/c_test/cp $image_signed_1 $image_unsigned_1_and_2
-        /mnt/github/c_test/cp $image_signed_1 $image_unsigned_1_and_2
-        if [ $? -ne 0 ] ; then
-            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
-            exit 1;
-        fi
-        dd_if=$image_unsigned
-        dd_of=$image_unsigned_1_and_2
-        size_if=`wc -c < $dd_if`
-        size_of=`wc -c < $dd_of`
-        echo /mnt/github/c_test/dd $dd_if $dd_of 1 0 $size_of $size_if
-        /mnt/github/c_test/dd $dd_if $dd_of 1 0 $size_of $size_if
-        if [ $? -ne 0 ] ; then
-            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
-            exit 1;
-        fi
+        cat $image_signed_1 $image_unsigned > $image_unsigned_1_and_2
     fi
 
     size_image_unsigned_1_and_2=`wc -c < $image_unsigned_1_and_2`
     if [ "$check" != "true" ] ; then
         #function 1
         #create $image_signed_3
+        echo dd if="$image_signed" of="$image_signed_3" bs=$size_image_unsigned_1_and_2 skip=1 seek=0
         dd if="$image_signed" of="$image_signed_3" bs=$size_image_unsigned_1_and_2 skip=1 seek=0
+        echo 'after dd $?='$?
     fi
     if [ "$check" != "true" ] ; then
         #function 1
         cat $image_unsigned_1_and_2 $image_signed_3 > $image_unsigned_1_and_2_and_3
     else
-        echo /mnt/github/c_test/cp $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
-        /mnt/github/c_test/cp $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
-        if [ $? -ne 0 ] ; then
-            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
-            exit 1;
-        fi
-        dd_if=$image_signed_3
-        dd_of=$image_unsigned_1_and_2_and_3
-        size_if=`wc -c < $dd_if`
-        size_of=`wc -c < $dd_of`
-        echo /mnt/github/c_test/dd $dd_if $dd_of 1 0 $size_of $size_if
-        /mnt/github/c_test/dd $dd_if $dd_of 1 0 $size_of $size_if
-        if [ $? -ne 0 ] ; then
-            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
-            exit 1;
-        fi
+        cat $image_unsigned_1_and_2 $image_signed_3 > $image_unsigned_1_and_2_and_3
     fi
     if [ "$combine" != "true" ] ; then
         diff $image_signed $image_unsigned_1_and_2_and_3
@@ -3246,22 +3220,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     if [ "$check" != "true" ] ; then
         cat $image_unsigned_1_and_2 $image_signed_3 > $image_unsigned_1_and_2_and_3
     else
-        echo /mnt/github/c_test/cp $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
-        /mnt/github/c_test/cp $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
-        if [ $? -ne 0 ] ; then
-            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
-            exit 1;
-        fi
-        dd_if=$image_signed_3
-        dd_of=$image_unsigned_1_and_2_and_3
-        size_if=`wc -c < $dd_if`
-        size_of=`wc -c < $dd_of`
-        echo /mnt/github/c_test/dd $dd_if $dd_of 1 0 $size_of $size_if
-        /mnt/github/c_test/dd $dd_if $dd_of 1 0 $size_of $size_if
-        if [ $? -ne 0 ] ; then
-            rm -rf $image_unsigned_1_and_2 $image_unsigned_1_and_2_and_3
-            exit 1;
-        fi
+        cat $image_unsigned_1_and_2 $image_signed_3 > $image_unsigned_1_and_2_and_3
     fi
 
     if [ "$combine" != "true" ] ; then
@@ -3651,9 +3610,9 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     # make diff
     $script 160 "$unsigned_unzip""/signed_bin/" $unsigned_unzip $diff_folder $signed_new_folder
     if [ $? -ne 0 ] ; then
-        rm -rf $unsigned_unzip
-        rm -rf $diff_folder
-        rm -rf $signed_new_folder
+#        rm -rf $unsigned_unzip
+#        rm -rf $diff_folder
+#        rm -rf $signed_new_folder
         exit 1;
     fi
     
@@ -4006,7 +3965,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     mv $unsigned_unzip"/"*"-verified"* $verity_folder"/"
 
     # clean
-#    rm -rf $unsigned_unzip"/sig/"
+    rm -rf $unsigned_unzip"/sig/"
     rm -rf $diff_folder
     rm -rf $signed_new_folder
 
@@ -4046,6 +4005,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     fi
 	;;
 esac
+
 exit 0
 
 ##script $1 $2
