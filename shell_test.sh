@@ -3467,11 +3467,11 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     #unzip
     echo x | unzip -j $unsigned_zip -d $unsigned_unzip
     if [ $? -ne 0 ] ; then
-        echo "ERROR***************************"
+#        echo "ERROR***************************"
         echo "unzip $unsigned_zip,"
         echo "it is not allowed to have subdirs more than 1 on $unsigned_zip"
-        rm -rf $tmp_path
-        exit 1;
+#        rm -rf $tmp_path
+#        exit 1;
     fi
 
     project_path=$current_dir"/sprd/sp9832a_3h10_volte"
@@ -3608,11 +3608,11 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     # unzip
     echo x | unzip -j $unsigned_zip -d $unsigned_unzip
     if [ $? -ne 0 ] ; then
-        echo "ERROR***************************"
+#        echo "ERROR***************************"
         echo "unzip $unsigned_zip,"
         echo "it is not allowed to have subdirs more than 1 on $unsigned_zip"
-        rm -rf $tmp_path
-        exit 1;
+#        rm -rf $tmp_path
+#        exit 1;
     fi
     ls -l $unsigned_unzip
     # sign
@@ -3955,11 +3955,11 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     # unzip
     echo x | unzip -j $unsigned_zip -d $unsigned_unzip
     if [ $? -ne 0 ] ; then
-        echo "ERROR***************************"
+#        echo "ERROR***************************"
         echo "unzip $unsigned_zip,"
         echo "it is not allowed to have subdirs more than 1 on $unsigned_zip"
-        rm -rf $tmp_path
-        exit 1;
+#        rm -rf $tmp_path
+#        exit 1;
     fi
     ls -l $unsigned_unzip
     # sign
@@ -4007,7 +4007,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     mv $unsigned_unzip"/"*"-verified"* $verity_folder"/"
 
     # clean
-    rm -rf $unsigned_unzip"/sig/"
+#    rm -rf $unsigned_unzip"/sig/"
     rm -rf $diff_folder
     rm -rf $signed_new_folder
 
