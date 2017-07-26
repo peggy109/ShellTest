@@ -3430,7 +3430,11 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 
     current_dir=`pwd`
     sign_workspace="/tmp"
-    sign_workspace="/data/app/sign-zip/sign-zip/tmp"
+    tmp_path="/data/app/sign-zip/sign-zip/tmp"
+    if [ ! -d $tmp_path ] ; then
+        mkdir -p $tmp_path
+    fi
+    sign_workspace="$tmp_path""/workspace"
     if [ ! -d $sign_workspace ] ; then
         mkdir -p $sign_workspace
     fi
@@ -3466,6 +3470,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         echo "ERROR***************************"
         echo "unzip $unsigned_zip,"
         echo "it is not allowed to have subdirs more than 1 on $unsigned_zip"
+        rm -rf $tmp_path
         exit 1;
     fi
 
@@ -3501,6 +3506,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         rm -rf $diff_folder
         rm -rf $signed_new_folder
         rm -rf $unsigned_unzip
+        rm -rf $tmp_path
         exit 1;
     fi
 
@@ -3528,6 +3534,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 
     #clean
     rm -rf $unsigned_unzip
+    rm -rf $tmp_path
     ;;
 165) echo "spreadtrum,mv signed images to <path>/signed/override"
     echo "similar with 155"
@@ -3569,6 +3576,10 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     project=$3
     current_dir=`pwd`
     sign_workspace="/tmp/"
+    tmp_path="/data/app/sign-zip/sign-zip/tmp"
+    if [ ! -d $tmp_path ] ; then
+        mkdir -p $tmp_path
+    fi
     
     zip_folder=`dirname $unsigned_zip`
     zip_name=`basename $unsigned_zip`
@@ -3600,6 +3611,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         echo "ERROR***************************"
         echo "unzip $unsigned_zip,"
         echo "it is not allowed to have subdirs more than 1 on $unsigned_zip"
+        rm -rf $tmp_path
         exit 1;
     fi
     ls -l $unsigned_unzip
@@ -3629,6 +3641,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 #        rm -rf $unsigned_unzip
 #        rm -rf $diff_folder
 #        rm -rf $signed_new_folder
+        rm -rf $tmp_path
         exit 1;
     fi
     
@@ -3659,6 +3672,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 
     # clean
 #    rm -rf $unsigned_unzip
+    rm -rf $tmp_path
     ;;
 168)
     cat rawprogram_unsparse.xml|grep system_|awk -F "system_" '{print $2}'|awk -F ' ' '{print $3"\t" $5}'|awk -F '"' '{print $2"_"$4}' > ~/1
@@ -3905,7 +3919,11 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     project=$3
     current_dir=`pwd`
     sign_workspace="/tmp/"
-    
+    tmp_path="/data/app/sign-zip/sign-zip/tmp"
+    if [ ! -d $tmp_path ] ; then
+        mkdir -p $tmp_path
+    fi
+
     zip_folder=`dirname $unsigned_zip`
     zip_name=`basename $unsigned_zip`
     postfix=`echo $zip_name|awk -F '.' '{print $NF}'`
@@ -3940,6 +3958,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         echo "ERROR***************************"
         echo "unzip $unsigned_zip,"
         echo "it is not allowed to have subdirs more than 1 on $unsigned_zip"
+        rm -rf $tmp_path
         exit 1;
     fi
     ls -l $unsigned_unzip
@@ -3974,6 +3993,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 #        rm -rf $unsigned_unzip
 #        rm -rf $diff_folder
 #        rm -rf $signed_new_folder
+        rm -rf $tmp_path
         exit 1;
     fi
     
@@ -4012,6 +4032,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 
     # clean
 #    rm -rf $unsigned_unzip
+    rm -rf $tmp_path
     ;;
 *) echo "others"
     echo "1: $2"
