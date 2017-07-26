@@ -2968,8 +2968,8 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     
     dat=`date +%Y%m%d_%H%M%S_%N`
     image_unsigned_filename=`basename $image_unsigned`
-    image_unsigned_1_and_2="/tmp/""$image_unsigned_filename""_part12_""$dat"
-    image_unsigned_1_and_2_and_3="/tmp/""$image_unsigned_filename""_part123_""$dat"
+    image_unsigned_1_and_2="/data/app/sign-zip/sign-zip/tmp/""$image_unsigned_filename""_part12_""$dat"
+    image_unsigned_1_and_2_and_3="/data/app/sign-zip/sign-zip/tmp/""$image_unsigned_filename""_part123_""$dat"
 
     if [ "$check" != "true" ] ; then
         #function 1
@@ -3182,8 +3182,8 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 
     dat=`date +%Y%m%d_%H%M%S_%N`
     image_unsigned_filename=`basename $image_unsigned`
-    image_unsigned_1_and_2="/tmp/""$image_unsigned_filename""_part12_""$dat"
-    image_unsigned_1_and_2_and_3="/tmp/""$image_unsigned_filename""_part123_""$dat"
+    image_unsigned_1_and_2="/data/app/sign-zip/sign-zip/tmp/""$image_unsigned_filename""_part12_""$dat"
+    image_unsigned_1_and_2_and_3="/data/app/sign-zip/sign-zip/tmp/""$image_unsigned_filename""_part123_""$dat"
 
     # by local 
     #cp $image_unsigned $image_unsigned_1_and_2
@@ -3429,8 +3429,11 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     project=$3
 
     current_dir=`pwd`
-    sign_workspace="/tmp/"
-
+    sign_workspace="/tmp"
+    sign_workspace="/data/app/sign-zip/sign-zip/tmp"
+    if [ ! -d $sign_workspace ] ; then
+        mkdir -p $sign_workspace
+    fi
     zip_folder=`dirname $unsigned_zip`
     zip_name=`basename $unsigned_zip`
     postfix=`echo $zip_name|awk -F '.' '{print $NF}'`
