@@ -3991,6 +3991,8 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         mv $file_signed "$signed_bin_folder""/""$filename"
     done
 
+    # should make diff +++
+    if [ "$should_diff" == "true" ] ; then
     # make diff
     $script 160 "$signed_bin_folder" $unsigned_unzip $diff_folder $signed_new_folder
     if [ $? -ne 0 ] ; then
@@ -4004,6 +4006,8 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cd $diff_folder
     zip $diff_zip ./*
     cd $current_dir
+    fi
+    # should make diff ---
 
     # override unsigned images with signed ones
     cp "$signed_bin_folder""/"* "$unsigned_unzip""/"
