@@ -3086,10 +3086,11 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         mkdir -p "$signed_new_dir/"
     fi
     if [ "$check" != "true" ] ; then
-        files=`dir "$signed_dir"`
         files=$(get_images_to_sign_for_MTK)
+        files=`dir "$signed_dir"`
     else
         files=$(get_images_to_sign_for_MTK)
+        files=`ls $diff_folder |awk -F "[.]part" '{print $1}'|sort|uniq`
     fi
     echo "files:$files(end)"
     for file in $files
