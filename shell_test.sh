@@ -2940,6 +2940,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     # part3
     #
     # image.signed = part1 + image.unsigned + part3
+#run anywhere
     image_signed="$2"
     image_unsigned="$3"
     image_signed_new=$4
@@ -3072,6 +3073,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 #   NULL    NULL    1   create diff & check & rm folder_signed_new
 #   flag "check" define : create diff or not
 #   flag "combine" define : (check & rm folder_signed_new) or not
+# run anywhere
     signed_dir=$2
     unsigned_dir=$3
     diff_folder=$4
@@ -3169,6 +3171,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     # part3
     #
     # image.signed = image.signed.part1 + image.unsigned.part2 + image.signed.part3
+# run anywhere
     image_signed="$2"
     image_unsigned="$3"
     image_signed_new=$4
@@ -3293,6 +3296,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 #   NULL    NULL    1   create diff & check & rm folder_signed_new
 #   flag "check" define : create diff or not
 #   flag "combine" define : (check & rm folder_signed_new) or not
+# run anywhere
 #BSC_BIN
 #VLR_BIN
 #VLR_OTHER_BIN
