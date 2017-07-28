@@ -2941,8 +2941,8 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     #
     # image.signed = part1 + image.unsigned + part3
 #run anywhere
-    image_signed="$2"
-    image_unsigned="$3"
+    image_signed=$2
+    image_unsigned=$3
     image_signed_new=$4
 
     image_signed_p1_size=$5
@@ -3173,8 +3173,8 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     #
     # image.signed = image.signed.part1 + image.unsigned.part2 + image.signed.part3
 # run anywhere
-    image_signed="$2"
-    image_unsigned="$3"
+    image_signed=$2
+    image_unsigned=$3
     image_signed_new=$4
     image_signed_p1_size=$5
     # output
@@ -3451,10 +3451,10 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 #    signed_zip="$sign_workspace""/""$zip_filename""_signed"".""$postfix"
 #    diff_zip="$sign_workspace""/""$zip_filename""_diff"".""$postfix"
 #    signed_list_file="$sign_workspace""/""$zip_filename""_signed_list.txt"
-    signed_zip="$4"
-    diff_zip="$5"
-    signed_list_file="$6"
-    signed_md5_file="$7"
+    signed_zip=$4
+    diff_zip=$5
+    signed_list_file=$6
+    signed_md5_file=$7
 
     # clean & mkdir
     unsigned_unzip="$sign_workspace""/""$zip_name""_unzip/"
@@ -3593,10 +3593,10 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     #
 #   signed_zip="$sign_workspace""/""$zip_filename""_signed"".""$postfix"
 #   diff_zip="$sign_workspace""/""$zip_filename""_diff"".""$postfix"
-    signed_zip="$4"
-    diff_zip="$5"
-    signed_list_file="$6"
-    signed_md5_file="$7"
+    signed_zip=$4
+    diff_zip=$5
+    signed_list_file=$6
+    signed_md5_file=$7
     # clean & mkdir
     unsigned_unzip="$current_dir""/MTK/mtk_release_$project/sign_image_split/out/target/product/""$project"
     diff_folder="$unsigned_unzip""/diff/"
@@ -3936,10 +3936,10 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     #
 #   signed_zip="$sign_workspace""/""$zip_filename""_signed"".""$postfix"
 #   diff_zip="$sign_workspace""/""$zip_filename""_diff"".""$postfix"
-    signed_zip="$4"
-    diff_zip="$5"
-    signed_list_file="$6"
-    signed_md5_file="$7"
+    signed_zip=$4
+    diff_zip=$5
+    signed_list_file=$6
+    signed_md5_file=$7
     # clean & mkdir
     unsigned_unzip="$current_dir""/MTK/mtk_release_$project/sign_image_split/out/target/product/""$project"
     diff_folder="$unsigned_unzip""/diff/"
