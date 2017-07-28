@@ -71,7 +71,7 @@ if [ ! -d $LOG_PATH ] ; then
 fi
 LOG_PATH="$LOG_PATH""/""$project""_""$zip_name""_""$dat"".log"
 echo "LOG_PATH="$LOG_PATH
-$tool $unsigned_zip $project $signed_zip $diff_zip $signed_list_file $signed_md5_file 2>&1 > $LOG_PATH
+$tool $unsigned_zip $project $signed_zip $diff_zip $signed_list_file $signed_md5_file 1> $LOG_PATH 2>&1
 if [ $? -ne 0 ] ; then
     echo "***************************************" 2>&1 | tee  -a $LOG_PATH
     echo "*********************SIGN ERROR********" 2>&1 | tee  -a $LOG_PATH
