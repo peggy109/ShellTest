@@ -3498,8 +3498,9 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
     cd "$sprd_secure_boot_tool_path"
     /bin/bash ./sig_script.sh $store_path
     #
-    cd $store_path
-    $script 165 $project_path
+ #   cd $store_path
+    cd $current_dir
+    $script 165 $project_path $store_path
 #    cd $project_path
 
     dir $store_path"/signed/override/" > $signed_list_file
@@ -3544,12 +3545,14 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
 165) echo "spreadtrum,mv signed images to <path>/signed/override"
     echo "similar with 155"
     echo "spreadtrum"
-    signed="signed"
+    path=$3
+    signed=$path"/signed"
     override=$signed"/override"
     mkdir $signed
     mkdir $override
     rootdir=$2
     echo "rootdir:$rootdir"
+    echo "path:$path"
     images=$(get_signature_filelist_sprd $rootdir)
     echo "images:$images(end)"
     for image in $images
@@ -3557,7 +3560,7 @@ openssl genrsa -out ${keypath}/attest.key -3 2048
         postfix=`echo $image|awk -F '.' '{print $NF}'`
         file_name=`echo $image|awk -F "[.]$postfix" '{print $1}'`
         signed_file_name="$file_name""-sign"".""$postfix"
-        mv $signed_file_name $signed"/"$signed_file_name
+        mv $path"/"$signed_file_name $signed"/"$signed_file_name
         cp $signed"/"$signed_file_name "$override""/""$image"
     done
     ;;

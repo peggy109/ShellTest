@@ -74,8 +74,9 @@ echo "given folder1 unsigned & project_name"
     cd "$sprd_secure_boot_tool_path"
     /bin/bash ./sig_script.sh $store_path
     #
-    cd $store_path
-    /bin/bash ./sp9832a_3h10_volte_handle_signed_imgs.sh $project_path
+ #   cd $store_path
+    cd $current_dir
+    /bin/bash ./sp9832a_3h10_volte_handle_signed_imgs.sh $project_path $store_path
 #    cd $project_path
 
     dir $store_path"/signed/override/" > $signed_list_file

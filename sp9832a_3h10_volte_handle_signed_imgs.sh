@@ -47,12 +47,14 @@ function handle_signed_images()
 echo "spreadtrum,mv signed images to <path>/signed/override"
     echo "similar with 155"
     echo "spreadtrum"
-    signed="signed"
+    path=$2
+    signed=$path"/signed"
     override=$signed"/override"
     mkdir $signed
     mkdir $override
     rootdir=$1
     echo "rootdir:$rootdir"
+    echo "path:$path"
     images=$(get_signature_filelist_sprd $rootdir)
     echo "images:$images(end)"
     for image in $images
@@ -60,7 +62,6 @@ echo "spreadtrum,mv signed images to <path>/signed/override"
         postfix=`echo $image|awk -F '.' '{print $NF}'`
         file_name=`echo $image|awk -F "[.]$postfix" '{print $1}'`
         signed_file_name="$file_name""-sign"".""$postfix"
-        mv $signed_file_name $signed"/"$signed_file_name
+        mv $path"/"$signed_file_name $signed"/"$signed_file_name
         cp $signed"/"$signed_file_name "$override""/""$image"
     done
-
