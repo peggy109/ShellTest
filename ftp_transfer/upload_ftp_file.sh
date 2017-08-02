@@ -14,6 +14,7 @@ echo "username: "$username
 echo "source: "$source
 echo "target: "$target
 /bin/bash $script_folder"/get_ftp_passwd.sh" $host $username >> /home/server/get_ftp_passwd_result
+echo /bin/bash $script_folder"/upload_file.sh" $host $username $password $source $target
 /bin/bash $script_folder"/upload_file.sh" $host $username $password $source $target
 
 
