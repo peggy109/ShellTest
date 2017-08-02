@@ -1,3 +1,5 @@
+#!/bin/bash
+echo $@
 ftpfile=$1
 username=$2
 target=$3
