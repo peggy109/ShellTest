@@ -26,7 +26,7 @@ echo "target:$target"
 echo "**********"
 
 /bin/bash $script_folder"/get_ftp_passwd.sh" $host $username
-echo /bin/bash $script_folder"/upload_file.sh" $host $username $password $source $target 
+echo /bin/bash $script_folder"/upload_file.sh" $host $username "PASSWD" $source $target 
 /bin/bash $script_folder"/upload_file.sh" $host $username $password $source $target 1> ~/ftp.txt 2>&1
 
 cat ~/ftp.txt | grep -v "Interactive mode off."
