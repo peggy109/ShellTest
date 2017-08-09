@@ -18,14 +18,12 @@ fi
 target=`echo $ftpfile|awk -F "$host" '{print $2}'`
 echo "**********"
 echo "host:$host"
-echo "port:$port"
 echo "username:$username"
 #echo "password:$password"
 echo "source:$source"
 echo "target:$target"
 echo "**********"
 
-/bin/bash $script_folder"/get_ftp_passwd.sh" $host $username
 echo /bin/bash $script_folder"/upload_file.sh" $host $username "PASSWD" $source $target 
 /bin/bash $script_folder"/upload_file.sh" $host $username $password $source $target 1> ~/ftp.txt 2>&1
 
