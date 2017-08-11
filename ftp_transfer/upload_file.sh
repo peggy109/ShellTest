@@ -9,6 +9,7 @@ port=`echo $ip | awk -F ":" '{print $2}'`
 ftp -n <<!
 open $host $port
 user $username $password
+binary
 prompt 
 put $source $target
 close
